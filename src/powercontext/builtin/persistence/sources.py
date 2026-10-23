@@ -39,7 +39,11 @@ from powercontext.builtin.persistence.errors import (
     StoredPayloadConflictError,
 )
 from powercontext.builtin.persistence.processing_intents import ArtifactProcessingIntentRepository
-from powercontext.builtin.persistence.tables import SOURCE_JOURNAL_HEADS_TABLE, SOURCES_TABLE
+from powercontext.builtin.persistence.tables import (
+    ARTIFACT_PROCESSING_BINDING_STATES_TABLE,
+    SOURCE_JOURNAL_HEADS_TABLE,
+    SOURCES_TABLE,
+)
 from powercontext.builtin.sources.content import ContentSource
 from powercontext.builtin.triggers import SOURCE_WINDOW_TRIGGER_NAME
 from powercontext.errors import SourceDefinitionNotFoundError
@@ -171,6 +175,7 @@ class SourceRepository:
         intents = ArtifactProcessingIntentRepository()
         for binding_name in SOURCE_PROCESSING_BINDINGS:
             await intents.mark_dirty(connection, scope_id, binding_name)
+        await _mark_custom_bindings_dirty(connection, scope_id, intents)
         return StoredSource(ref=ref, value=source, journal_position=position), True
 
     async def get(
@@ -523,3 +528,22 @@ def _require_identity(field: str, value: object, maximum: int) -> None:
         raise InvalidRepositoryArgumentError(field, "must be a non-empty trimmed string")
     if len(value) > maximum:
         raise InvalidRepositoryArgumentError(field, f"must not exceed {maximum} characters")
+
+
+async def _mark_custom_bindings_dirty(
+    connection: AsyncConnection,
+    scope_id: str,
+    intents: ArtifactProcessingIntentRepository,
+) -> None:
+    plugins = (
+        await connection.execute(
+            select(
+                ARTIFACT_PROCESSING_BINDING_STATES_TABLE.c.binding_name,
+                ARTIFACT_PROCESSING_BINDING_STATES_TABLE.c.plugin_spec[("manifest", "scope_ids")].label("scope_ids"),
+            ).where(ARTIFACT_PROCESSING_BINDING_STATES_TABLE.c.plugin_spec.is_not(None))
+        )
+    ).all()
+    for plugin in plugins:
+        scope_ids = plugin.scope_ids
+        if scope_ids is None or scope_id in scope_ids:
+            await intents.mark_dirty(connection, scope_id, plugin.binding_name)
