@@ -310,6 +310,10 @@ reconciliation generate descriptions alongside text in their existing call; they
 Invalid generation output fails instead of silently publishing incomplete metadata. Custom Atomic Memory
 prompt demonstrations must be updated for the v2 extraction/reconciliation definitions.
 
+Default previews are applied during write preparation, before content hashes and search projections are fixed.
+The commit boundary rejects a prepared new write that still lacks a description; it does not apply defaults
+or alter prepared content. Historical restoration preserves the stored content without adding a summary.
+
 Descriptions are authoritative revision content and copied transactionally to `pc_atomic_memory_current.description`.
 Manifest queries select narrow metadata columns, never `text`, `searchable_text`, vectors or `pc_artifacts.content`.
 Neither reading the manifest nor opening an existing database generates summaries. Startup adds the nullable projection

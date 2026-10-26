@@ -348,6 +348,8 @@ class _AtomicMemoryMergeService(ArtifactMergeService):
         direct_sources: Sequence[SourceRef | None] | None = None,
         source_read_set: _SourceReadSet | None = None,
     ) -> tuple[ArtifactMergeMutationResult, ...]:
+        # Prepared content and projection hashes are already fixed. Reject malformed
+        # prepared writes here rather than applying defaults after preparation.
         for item in prepared:
             if item.plan.operation in {"change", "merge"}:
                 for write in item.plan.writes:
