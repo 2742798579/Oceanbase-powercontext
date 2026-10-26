@@ -82,7 +82,7 @@ those two upgrade configurations alone, or `full` to run all 12. Other Main CI s
 For a PR branch, the equivalent command is:
 
 ```sh
-gh workflow run master.yml --repo oceanbase/powercontext --ref codex/issue-2154-full-server-upgrade -f upgrade_selection=seekdb-code
+gh workflow run master.yml --repo oceanbase/powercontext --ref YOUR_BRANCH -f upgrade_selection=seekdb-code
 ```
 
 `automatic` runs the remaining 10. Reports list deferred cases and mark full acceptance incomplete; a passing
@@ -125,11 +125,16 @@ Provide these behavioral tests (additional tests are allowed):
 | `test_public_migration_commands` | Stop writers, run the target artifact's public maintenance commands, and validate full readiness. SQLite additionally restores the actual automatic recovery point, reads it with the source Server, upgrades it and verifies target use. A limited bundle verification does not pass. |
 | `test_target_startup` | Start the target Server against the migrated database and verify readiness. |
 | `test_read_write_and_retrieval` | Read the old records, write new ones, and retrieve both through public interfaces. |
-| `test_authorization` | Verify permitted and denied access and preservation of relevant grants. |
+| `test_authorization` | Preserve the old viewer grant; verify allowed reads, denied cross-scope reads, denied writes and unchanged data after rejection using both installed releases. Invalid credentials must still fail. |
 | `test_candidates_and_processing` | Verify retained Candidates and CAS approval; load and acknowledge the old pending intent using the target installed SDK, including idempotency. |
 | `test_background_processing` | Run the installed target's actual Memory Worker against a local controlled inference endpoint; capture a new Source, verify the published Memory's exact Source reference and FTS retrieval, and require the child Worker's usage report. |
 | `test_preserved_history_and_cursors` | Verify exact history/references and unchanged or declared-transformed cursor and receipt semantics. |
 | `test_fresh_upgrade_equivalence` | Initialize a fresh target database; compare schema/backend objects and behavior with the upgraded database. The current suite has no retained/archive object exclusions. |
+
+The authorization probe runs each installed release's native Server through real HTTP handlers with a fixed
+ordinary-user authentication provider. The persisted builtin authorization policy is not overridden. Both the
+source and target CLI Servers are stopped before the SDK probe opens storage, so embedded seekDB has one owner.
+CLI readiness remains a separate mandatory phase.
 
 Use a session fixture for the shared lifecycle; do not depend on pytest's test execution order. All collected tests
 must execute and pass. Empty collection, missing phases, skips (including missing backends), xfail, failure, command
@@ -206,3 +211,16 @@ Main first runs the previously failing embedded seekDB concurrent-startup regres
 once, before the installed-release workflow and the remaining seekDB clean-migration job.
 Those jobs still run after a failed priority check unless the workflow is cancelled; the
 selected installed-release cases remain disjoint and parallel. Other CI suites can run concurrently.
+
+## Regression checks
+
+The shared prepare job runs gate, publication and schema-equivalence regressions before checking the reviewed
+persistence digest. Digest failure still blocks preparation; the earlier regression result remains visible.
+The raw DDL comparator preserves quoted literals, comments and identifier boundaries, normalizing only unquoted
+whitespace and table-level auto-increment counters. Native logical table reflection remains authoritative for
+seekDB/OceanBase comparisons, with views and triggers also compared. SQL literal differences must never disappear
+as formatting changes. Unknown configurations and missing or mismatched execution evidence fail closed.
+
+Full installed-release acceptance requires Linux process ownership and descendant cleanup. Other hosts can run
+the policy and comparison regressions, but the full runner rejects them before creating workspaces or installing
+packages. Passing local regressions is not evidence of a successful native-backend upgrade.
