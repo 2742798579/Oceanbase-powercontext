@@ -161,7 +161,7 @@ def create_server_app(  # noqa: C901
     )
     from powercontext.source_management.deployment import prepare as prepare_source_deployment
 
-    configured_authentication, source_deployer = prepare_source_deployment(resolved, configured_authentication)
+    configured_authentication, _ = prepare_source_deployment(resolved, configured_authentication)
     config = BuiltinConfig(
         code=resolved.code,
         runtime=resolved.runtime,
@@ -195,9 +195,8 @@ def create_server_app(  # noqa: C901
                 active_access_control = await resources.enter_async_context(
                     open_builtin_access_control(
                         resolved.database,
-                        bootstrap_administrators=((static_principal,) + ((source_deployer,) if source_deployer else ()))
-                        if legacy_static_admin
-                        else (
+                        bootstrap_administrators=(static_principal,) if legacy_static_admin else (),
+                        server_administrators=(
                             tuple(
                                 principal
                                 for principal in configured_authentication.principals()

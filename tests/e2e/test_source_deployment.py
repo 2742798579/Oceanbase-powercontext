@@ -16,6 +16,7 @@ import yaml
 from tests.source_helpers import protected, wait_until
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples/source_plugins"
+DEPLOYMENT_TIMEOUT_SECONDS = 100
 
 
 @pytest.mark.parametrize("remote", [False, True])
@@ -78,7 +79,7 @@ def test_load_real_background_processes_and_preserves_disabled_state(tmp_path, r
                 entrypoint, *args, env=environment, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
             try:
-                out, err = await asyncio.wait_for(child.communicate(), 100)
+                out, err = await asyncio.wait_for(child.communicate(), DEPLOYMENT_TIMEOUT_SECONDS)
             finally:
                 if child.returncode is None:
                     child.kill()
@@ -183,6 +184,8 @@ def test_load_real_background_processes_and_preserves_disabled_state(tmp_path, r
                                 json={"instance_id": "cli-tickets", "view": "control"},
                             ),
                             lambda r: r.status_code == 200 and r.json()["instances"][0]["actual"] == "running",
+                            # Server readiness precedes manager and Runtime startup; use the CLI deployment budget.
+                            timeout_seconds=DEPLOYMENT_TIMEOUT_SECONDS,
                         )
                         await wait_until(
                             lambda: admin.get(f"/v1/scopes/{scope}/sources"),

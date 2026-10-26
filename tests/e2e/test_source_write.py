@@ -37,9 +37,11 @@ async def _write_and_restart(directory):
     }
     async with running_server(directory) as (admin, url, _process):
         scope = await create_scope(admin, "write-evidence")
+        await grant(admin, scope, "deployer", "scope.viewer")
         await grant(admin, scope)
         await grant(admin, scope, "reader", "scope.viewer")
         other_scope = await create_scope(admin, "other-evidence")
+        await grant(admin, other_scope, "deployer", "scope.viewer")
         configuration = deployment / "write.yml"
         first = await load_write_cli(configuration, url)
         assert await load_write_cli(configuration, url) == first
@@ -166,6 +168,7 @@ async def _write_boundaries(directory):
     entry.write_text(BOUNDARY_PLUGIN)
     async with running_server(directory, write_timeout=1) as (admin, url, process):
         scope = await create_scope(admin, "write-limits")
+        await grant(admin, scope, "deployer", "scope.viewer")
         binding = await grant(admin, scope)
         config = {"id": "boundary", "entry": str(entry)}
         response = await admin.post(LOAD, json=config)

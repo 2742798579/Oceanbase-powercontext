@@ -170,8 +170,8 @@ def protected(path: Path, value: str) -> Path:
     return path
 
 
-async def wait_until(call, predicate):
-    async with asyncio.timeout(15):
+async def wait_until(call, predicate, *, timeout_seconds: float = 15):
+    async with asyncio.timeout(timeout_seconds):
         while True:
             value = await call()
             if predicate(value):
