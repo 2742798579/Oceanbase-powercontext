@@ -56,7 +56,6 @@ def dashboard(tmp_path: Path):
             access=AccessControlConfig(mode="enforced"),
             auth=BearerAuthConfig(token=SecretStr(token)),
         ),
-        scheduler_path=tmp_path / "scheduler.db",
     )
     with TestClient(app) as client:
         client.headers["Authorization"] = f"Bearer {token}"
@@ -556,7 +555,6 @@ def test_memory_search_modes_surface_semantic_hits_and_keep_navigation(tmp_path:
             dashboard=DashboardConfig(enabled=True),
             mcp=McpConfig(enabled=False),
         ),
-        scheduler_path=tmp_path / "scheduler.db",
         embedding_model=CoffeeEmbedding(),
     )
     with TestClient(app) as client:
@@ -1287,7 +1285,6 @@ def test_authentication_recovers_without_exposing_credentials(tmp_path: Path) ->
             auth=BearerAuthConfig(enabled=True, token=SecretStr(token)),
             mcp=McpConfig(enabled=False),
         ),
-        scheduler_path=tmp_path / "scheduler.db",
     )
     with TestClient(app) as client:
         assert client.get("/dashboard/home").status_code == 401
@@ -1370,7 +1367,7 @@ def test_dashboard_is_opt_in_and_enforced_access_requires_the_static_token_profi
     monkeypatch.setenv("POWERCONTEXT_SERVER_DASHBOARD_ENABLED", "false")
     database = SQLiteConfig(url=f"sqlite+aiosqlite:///{tmp_path}/disabled.db")
     settings = ServerSettings(database=database, mcp=McpConfig(enabled=False))
-    with TestClient(create_server_app(settings=settings, scheduler_path=tmp_path / "scheduler.db")) as client:
+    with TestClient(create_server_app(settings=settings)) as client:
         assert client.get("/health/ready").status_code == 200
         assert client.get("/v1/scopes/default").status_code == 200
         for path in ("/", "/dashboard/home", "/dashboard/static/layout.css"):
@@ -1403,7 +1400,7 @@ def test_disabled_dashboard_does_not_offer_token_login(tmp_path: Path) -> None:
         auth=BearerAuthConfig(token=SecretStr(token)),
         mcp=McpConfig(enabled=False),
     )
-    with TestClient(create_server_app(settings=settings, scheduler_path=tmp_path / "scheduler.db")) as client:
+    with TestClient(create_server_app(settings=settings)) as client:
         response = client.get("/dashboard/home")
         assert response.status_code == 401
         assert response.headers["content-type"].startswith("application/json")

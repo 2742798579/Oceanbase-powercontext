@@ -485,7 +485,6 @@ def test_legacy_prompt_publication_preserves_business_json_that_resembles_protoc
             inference=InferenceConfig(generation_model="test"),
             mcp=McpConfig(enabled=False),
         ),
-        scheduler_path=tmp_path / "prompt-compat-scheduler.db",
     )
 
     async def scenario():

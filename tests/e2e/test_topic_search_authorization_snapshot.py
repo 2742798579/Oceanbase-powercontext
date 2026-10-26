@@ -207,7 +207,6 @@ async def _server(
                 metrics=MetricsConfig(enabled=False),
                 mcp=McpConfig(enabled=False),
             ),
-            scheduler_path=tmp_path / "scheduler.db",
             authentication_provider=_Authentication(),
             access_control=access,
             embedding_model=embedding,

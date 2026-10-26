@@ -81,7 +81,6 @@ def _client(migration_backend: MigrationBackend) -> TestClient:
                 mcp=McpConfig(enabled=False),
                 metrics=MetricsConfig(enabled=False),
             ),
-            scheduler_path=migration_backend.directory / "scheduler.db",
         ),
         headers={"Authorization": "Bearer migration-test-token"},
     )
@@ -452,7 +451,6 @@ def test_server_startup_keeps_grant_projection_current(migration_backend: Migrat
                         BuiltinConfig(
                             database=migration_backend.config, runtime=RuntimeConfig(artifact_processing_families=())
                         ),
-                        scheduler_path=migration_backend.directory / "adapter-scheduler.db",
                     )
                 )
                 authentication = StaticBearerAuthenticationProvider("migration-test-token", ACTOR)

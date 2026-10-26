@@ -516,9 +516,7 @@ def test_http_prepare_online_cli_sync_and_restart(tmp_path, backend):
     root = make_repository(tmp_path)
 
     async def exercise():
-        async with open_builtin_runtime(
-            BuiltinConfig(database=database), scheduler_path=tmp_path / "scheduler.db"
-        ) as runtime:
+        async with open_builtin_runtime(BuiltinConfig(database=database)) as runtime:
             assert runtime.scopes is not None
             scope = await runtime.scopes.create(
                 ScopeDraft(title="Embedded code", summary="Code evidence", idempotency_key="seekdb-code")

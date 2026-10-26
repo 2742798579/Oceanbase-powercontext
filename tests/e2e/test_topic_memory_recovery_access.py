@@ -50,7 +50,6 @@ async def _recovery_server(tmp_path, backend, inference):
             metrics=MetricsConfig(enabled=False),
         ),
         authentication_provider=_Authentication(),
-        scheduler_path=tmp_path / "scheduler.db",
     )
     async with (
         app.router.lifespan_context(app),

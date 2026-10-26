@@ -64,7 +64,7 @@ def test_local_wizard_connects_dashboard_api_and_mcp(tmp_path: Path, require_aut
     base_url = values["POWERCONTEXT_CLIENT_SERVER_URL"]
     headers = {"Authorization": values["POWERCONTEXT_CODEX_AUTHORIZATION"]} if require_authentication else {}
     with server_settings_context(env_file=output) as settings:
-        app = create_server_app(settings=settings, scheduler_path=tmp_path / "scheduler.db")
+        app = create_server_app(settings=settings)
 
     def create_http_client(
         headers: dict[str, str] | None = None,
@@ -132,7 +132,6 @@ def test_dashboard_selected_note_uses_one_policy_and_content_snapshot(
             auth=BearerAuthConfig(enabled=True, token=SecretStr("dashboard-snapshot")),
             mcp=McpConfig(enabled=False),
         ),
-        scheduler_path=migration_backend.directory / "scheduler.db",
     )
 
     async def scenario() -> None:
@@ -218,7 +217,7 @@ def test_review_disclosures_follow_current_read_and_decision_grants(migration_ba
         auth=BearerAuthConfig(token=SecretStr("review-acceptance")),
         mcp=McpConfig(enabled=False),
     )
-    app = create_server_app(settings=settings, scheduler_path=migration_backend.directory / "scheduler.db")
+    app = create_server_app(settings=settings)
 
     async def scenario():
         async with (
@@ -365,7 +364,7 @@ def test_review_disclosures_follow_current_read_and_decision_grants(migration_ba
                 assert "Private Review evidence." not in forbidden.text
                 assert "Review a delivery" not in forbidden.text
 
-        restarted = create_server_app(settings=settings, scheduler_path=migration_backend.directory / "scheduler.db")
+        restarted = create_server_app(settings=settings)
         async with (
             restarted.router.lifespan_context(restarted),
             httpx.AsyncClient(

@@ -103,7 +103,6 @@ async def _review_server(tmp_path: Path) -> AsyncIterator[tuple[FastAPI, str]]:
             ),
             authentication_provider=_Authentication(),
             access_control=access,
-            scheduler_path=tmp_path / "scheduler.db",
         )
         async with app.router.lifespan_context(app), _http_client(app, "admin") as admin:
             scope = await admin.post(

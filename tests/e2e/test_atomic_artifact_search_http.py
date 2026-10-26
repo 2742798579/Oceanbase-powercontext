@@ -99,7 +99,6 @@ def test_supported_long_query_preserves_all_terms_in_both_http_searches(
                 metrics=MetricsConfig(enabled=False),
                 mcp=McpConfig(enabled=False),
             ),
-            scheduler_path=migration_backend.directory / "scheduler.db",
             embedding_model=_Embedding(),
         )
         async with (
@@ -168,7 +167,6 @@ def test_composed_atomic_search_returns_full_content_scores_and_trusted_local_id
                 metrics=MetricsConfig(enabled=False),
                 mcp=McpConfig(enabled=False),
             ),
-            scheduler_path=tmp_path / "scheduler.db",
         )
         async with (
             app.router.lifespan_context(app),
@@ -258,7 +256,6 @@ def test_unified_atomic_search_preserves_authenticated_subject_actor_groups_and_
                     metrics=MetricsConfig(enabled=False),
                     mcp=McpConfig(enabled=False),
                 ),
-                scheduler_path=tmp_path / "scheduler.db",
                 access_control=access,
                 authentication_provider=Authentication(),
             )

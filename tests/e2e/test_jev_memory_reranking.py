@@ -86,7 +86,6 @@ def test_jev_search_and_prepare_preserve_identity_authorization_and_budget(datab
                     ),
                     memory_reranker=reranker,
                     recall_effort_sink=record_effort,
-                    scheduler_path=tmp_path / "jev-scheduler.db",
                 ) as runtime,
             ):
                 assert runtime.atomic_memory is not None

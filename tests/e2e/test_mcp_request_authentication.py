@@ -365,7 +365,6 @@ def test_mcp_client_writes_reconnects_and_preserves_memory_after_server_restart(
             def server_app() -> FastAPI:
                 return create_server_app(
                     settings=ServerSettings(database=database, access=AccessControlConfig(mode="enforced")),
-                    scheduler_path=tmp_path / "scheduler.db",
                     access_control=access,
                     authentication_provider=authentication,
                 )

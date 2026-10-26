@@ -101,7 +101,6 @@ async def server(directory: Path) -> AsyncIterator[tuple[PowerContextClient, htt
             ),
             authentication_provider=Authentication(),
             access_control=access,
-            scheduler_path=directory / "scheduler.db",
         )
         async with (
             app.router.lifespan_context(app),

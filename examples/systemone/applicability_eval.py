@@ -221,7 +221,6 @@ async def run(args: argparse.Namespace, config: SystemOneConfig) -> Path:
             mcp=McpConfig(enabled=False),
             metrics=MetricsConfig(enabled=False),
         ),
-        scheduler_path=directory / "scheduler.db",
     )
     budget = load_laya_budget(args.checkpoint) if config.provider == "laya" else None
     source_digests = {

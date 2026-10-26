@@ -29,7 +29,8 @@ from starlette.middleware import Middleware
 from powercontext.artifacts import ArtifactAddress, ArtifactRef, ArtifactSearchExecutionContext
 from powercontext.builtin.persistence.sqlite import SQLiteConfig, SQLiteProfile
 from powercontext.builtin.publication import ArtifactPublication, ArtifactPublicationRequest
-from powercontext.builtin.runtime.config import RuntimeConfig
+from powercontext.builtin.runtime.composition import BuiltinConfigurationError
+from powercontext.builtin.runtime.config import InferenceConfig, RuntimeConfig
 from powercontext.server.app import create_app
 from powercontext.server.authentication import (
     AuthenticationResult,
@@ -88,10 +89,23 @@ def test_enforced_mode_cannot_silently_start_without_authentication_or_provider(
             database=SQLiteConfig(url=f"sqlite+aiosqlite:///{tmp_path / 'scheduled.db'}"),
             access=AccessControlConfig(mode="enforced"),
             runtime=RuntimeConfig(schedule_seconds=60),
+            inference=InferenceConfig(generation_model="test"),
         ),
         authentication_provider=_ActingAuthenticationProvider(),
     )
     with pytest.raises(ValueError, match="BACKGROUND_PRINCIPAL_ID"), TestClient(scheduled):
+        pass
+
+    # A schedule with no runnable family is rejected at startup as well.
+    unrunnable = create_server_app(
+        settings=ServerSettings(
+            database=SQLiteConfig(url=f"sqlite+aiosqlite:///{tmp_path / 'unrunnable.db'}"),
+            access=AccessControlConfig(mode="enforced"),
+            runtime=RuntimeConfig(schedule_seconds=60),
+        ),
+        authentication_provider=_ActingAuthenticationProvider(),
+    )
+    with pytest.raises(BuiltinConfigurationError), TestClient(unrunnable):
         pass
 
 

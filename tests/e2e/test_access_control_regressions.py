@@ -86,7 +86,6 @@ async def _server(tmp_path: Path, backend="builtin", *, inference: InferenceConf
             ),
             authentication_provider=_Authentication(),
             access_control=access,
-            scheduler_path=tmp_path / "scheduler.db",
         )
         async with (
             app.router.lifespan_context(app),
