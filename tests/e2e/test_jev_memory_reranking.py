@@ -27,10 +27,10 @@ from pydantic import SecretStr
 from starlette.middleware import Middleware
 
 from powercontext.builtin.artifacts.memory import JevMemoryReranker, JevRerankConfig
+from powercontext.builtin.authz.composition import open_builtin_access_control
 from powercontext.builtin.inference.errors import InferenceTimeoutError, InferenceUnavailableError
 from powercontext.builtin.runtime import BuiltinConfig, RuntimeConfig, open_builtin_runtime
 from powercontext.server.app import ServerApplication, create_app
-from powercontext.server.authz.composition import open_builtin_access_control
 from powercontext.server.middleware import AuthenticationMiddleware
 from tests.e2e.test_access_control_regressions import ADMIN, _Authentication, _grant
 from tests.e2e.test_atomic_memory_read_snapshot import database as jev_database

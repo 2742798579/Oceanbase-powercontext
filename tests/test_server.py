@@ -33,6 +33,7 @@ from pydantic_ai.providers.openai import OpenAIProvider
 import powercontext.builtin.runtime.composition as runtime_composition
 from powercontext.builtin.artifacts.experience import ExperienceCandidateInput
 from powercontext.builtin.artifacts.memory import EmbeddingProfile
+from powercontext.builtin.authz import AccessControlService
 from powercontext.builtin.inference import EmbeddingResult, InferenceConfigurationError
 from powercontext.builtin.inference.pydantic_ai import PydanticAIConfigurationError
 from powercontext.builtin.persistence.database import AsyncDatabase
@@ -51,7 +52,6 @@ from powercontext.http import (
     ReadinessStatus,
 )
 from powercontext.server.app import create_app
-from powercontext.server.authz import AccessControlService
 from powercontext.server.factory import create_server_app
 from powercontext.server.settings import (
     AccessControlConfig,

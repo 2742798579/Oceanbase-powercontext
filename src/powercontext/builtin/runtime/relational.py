@@ -1068,7 +1068,7 @@ class RelationalContexts:
         scope = validate_scope_id(scope_id)
         access = None if execution_context is None else execution_context.access
         if execution_context is not None and access is None and not execution_context.trusted_local:
-            from powercontext.server.authz import AccessDeniedError
+            from powercontext.builtin.authz import AccessDeniedError
 
             raise AccessDeniedError
         audit = nullcontext() if access is None else access.defer_decision_audit()

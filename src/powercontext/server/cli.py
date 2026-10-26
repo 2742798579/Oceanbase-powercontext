@@ -28,6 +28,8 @@ import typer
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError
 
+from powercontext.builtin.authz import PrincipalRef
+from powercontext.builtin.authz.composition import open_builtin_access_control
 from powercontext.builtin.persistence.oceanbase import OceanBaseConfig, OceanBaseProfile
 from powercontext.builtin.persistence.oceanbase.atomic_memory_index import OceanBaseAtomicMemoryIndex
 from powercontext.builtin.persistence.processing_migration import (
@@ -45,8 +47,6 @@ from powercontext.builtin.runtime.processing_registry import canonical_processin
 from powercontext.cli.env_file import environment_context
 from powercontext.cli.inference_notice import write_inference_capability_notice
 from powercontext.server.app import access_readiness_checks
-from powercontext.server.authz import PrincipalRef
-from powercontext.server.authz.composition import open_builtin_access_control
 from powercontext.server.background_metrics import serve_background_metrics
 from powercontext.server.configuration import (
     ServerConfigurationError,

@@ -120,7 +120,7 @@ def test_dashboard_selected_note_uses_one_policy_and_content_snapshot(
 ) -> None:
     from contextvars import Context
 
-    from powercontext.server.authz import AccessAction, BuiltinAuthorizationProvider
+    from powercontext.builtin.authz import AccessAction, BuiltinAuthorizationProvider
     from powercontext.server.dashboard.routes import LABELS
 
     app = create_server_app(
@@ -276,7 +276,7 @@ def test_review_disclosures_follow_current_read_and_decision_grants(migration_ba
             artifact_id = artifact.json()["artifact_id"]
             tags = await client.get(f"/v1/scopes/{scope}/artifacts/experience/{artifact_id}/tags")
             assert tags.status_code == 200, tags.text
-            from powercontext.server.authz import PrincipalRef
+            from powercontext.builtin.authz import PrincipalRef
             from powercontext.server.context import bind_principal, reset_principal
 
             identity = bind_principal(PrincipalRef(type="service", id="server-token"))

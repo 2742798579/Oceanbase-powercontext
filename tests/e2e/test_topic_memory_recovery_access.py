@@ -20,9 +20,9 @@ import httpx
 import pytest
 from pydantic import AnyHttpUrl
 
+from powercontext.builtin.authz.composition import open_builtin_access_control
 from powercontext.builtin.persistence.sqlite import SQLiteConfig
 from powercontext.builtin.runtime import InferenceConfig, RuntimeConfig
-from powercontext.server.authz.composition import open_builtin_access_control
 from powercontext.server.factory import create_server_app
 from powercontext.server.settings import AccessControlConfig, McpConfig, MetricsConfig, ServerSettings
 from tests.builtin.runtime.test_topic_memory_terminal_frontier import _budget, _seed

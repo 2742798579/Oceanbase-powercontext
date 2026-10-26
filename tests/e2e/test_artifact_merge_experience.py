@@ -32,6 +32,18 @@ from powercontext.artifacts import ArtifactAddress, ArtifactLineage, ArtifactRef
 from powercontext.builtin.artifacts.atomic_memory import AtomicMemoryContent
 from powercontext.builtin.artifacts.experience import ExperienceContent, FailureRecord
 from powercontext.builtin.artifacts.merge_models import ArtifactMergeRelationError
+from powercontext.builtin.authz import (
+    AccessAuditContext,
+    AccessBinding,
+    AccessBindingState,
+    AccessControlService,
+    AccessDeniedError,
+    AccessRole,
+    BuiltinAuthorizationProvider,
+    PrincipalRef,
+    ResourceRef,
+)
+from powercontext.builtin.authz.repository import RelationalAccessRepository
 from powercontext.builtin.persistence.artifact_governance import InvalidArtifactLifecycleError
 from powercontext.builtin.persistence.errors import RepositoryNotFoundError
 from powercontext.builtin.persistence.experience_index import ensure_artifact_head_searchable_text
@@ -49,18 +61,6 @@ from powercontext.builtin.runtime import (
 from powercontext.builtin.runtime.relational import RelationalContexts
 from powercontext.builtin.scope import ScopeDraft
 from powercontext.builtin.tags import ArtifactTagTarget
-from powercontext.server.authz import (
-    AccessAuditContext,
-    AccessBinding,
-    AccessBindingState,
-    AccessControlService,
-    AccessDeniedError,
-    AccessRole,
-    BuiltinAuthorizationProvider,
-    PrincipalRef,
-    ResourceRef,
-)
-from powercontext.server.authz.repository import RelationalAccessRepository
 from powercontext.sources import SourceRef
 
 OWNER = PrincipalRef(type="service", id="experience-owner")

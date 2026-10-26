@@ -2257,8 +2257,8 @@ __all__ = ["BuiltinConfigurationError", "open_builtin_contexts", "open_builtin_r
 
 async def _initialize_atomic_memory_authority(connection) -> None:
     """Create formal authority storage without importing legacy business data."""
+    from powercontext.builtin.authz.repository import ACCESS_POLICY_HEADS_TABLE, ACCESS_TABLES
     from powercontext.builtin.persistence.schema import create_tables
-    from powercontext.server.authz.repository import ACCESS_POLICY_HEADS_TABLE, ACCESS_TABLES
 
     await create_tables(connection, ACCESS_TABLES)
     if connection.dialect.name == "sqlite":

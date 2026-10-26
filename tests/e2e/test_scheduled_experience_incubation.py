@@ -26,6 +26,7 @@ from powercontext.builtin.artifacts.experience import (
     ExperienceCandidateInput,
     ExperienceContent,
 )
+from powercontext.builtin.authz.worker import open_worker_security
 from powercontext.builtin.persistence.processing_intents import ArtifactProcessingIntentRepository
 from powercontext.builtin.persistence.sqlite import SQLiteConfig
 from powercontext.builtin.runtime import (
@@ -53,7 +54,6 @@ from powercontext.http import (
     PrepareContextRequest,
 )
 from powercontext.server.factory import create_server_app
-from powercontext.server.processing_security import open_worker_security
 from powercontext.server.settings import McpConfig, ServerSettings
 from powercontext.sources import Source, SourceRef
 from tests.e2e.atomic_memory_migration_backend import MigrationBackend

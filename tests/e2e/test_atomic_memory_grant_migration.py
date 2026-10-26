@@ -33,6 +33,19 @@ from pydantic import SecretStr
 from sqlalchemy import insert, text
 from starlette.middleware import Middleware
 
+from powercontext.builtin.authz import (
+    AccessBinding,
+    AccessBindingState,
+    AccessConflictError,
+    AccessRole,
+    ArtifactOwnerRelation,
+    MemoryEntrySelector,
+    PrincipalRef,
+    ResourceRef,
+)
+from powercontext.builtin.authz.composition import open_builtin_access_control
+from powercontext.builtin.authz.repository import RelationalAccessRepository
+from powercontext.builtin.authz.service import ReplaceBinding
 from powercontext.builtin.persistence.atomic_memory_identity import legacy_entry_artifact_id
 from powercontext.builtin.persistence.migrations.atomic_memory_v1 import (
     apply_atomic_memory_migration,
@@ -47,19 +60,6 @@ from powercontext.builtin.runtime import BuiltinConfig, open_builtin_runtime
 from powercontext.builtin.runtime.config import RuntimeConfig
 from powercontext.server.app import ServerApplication, create_app
 from powercontext.server.authentication import StaticBearerAuthenticationProvider
-from powercontext.server.authz import (
-    AccessBinding,
-    AccessBindingState,
-    AccessConflictError,
-    AccessRole,
-    ArtifactOwnerRelation,
-    MemoryEntrySelector,
-    PrincipalRef,
-    ResourceRef,
-)
-from powercontext.server.authz.composition import open_builtin_access_control
-from powercontext.server.authz.repository import RelationalAccessRepository
-from powercontext.server.authz.service import ReplaceBinding
 from powercontext.server.factory import create_server_app
 from powercontext.server.middleware import AuthenticationMiddleware
 from powercontext.server.settings import AccessControlConfig, BearerAuthConfig, McpConfig, MetricsConfig, ServerSettings

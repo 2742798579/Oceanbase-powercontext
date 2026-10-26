@@ -34,6 +34,16 @@ from powercontext.builtin.artifacts.handoff import HandoffGenerationPipeline
 from powercontext.builtin.artifacts.memory import CandidatePipeline
 from powercontext.builtin.artifacts.profile.service import ProfileGenerator
 from powercontext.builtin.artifacts.skill import ExternalSkillProvider, SkillGenerator
+from powercontext.builtin.authz import (
+    AccessAction,
+    AccessAuditContext,
+    AccessControlService,
+    PrincipalRef,
+    ResourceRef,
+    access_control_for_mode,
+)
+from powercontext.builtin.authz.composition import open_builtin_access_control
+from powercontext.builtin.authz.repository import RelationalAccessRepository
 from powercontext.builtin.dream.generation import DreamGenerator
 from powercontext.builtin.inference import EmbeddingModel
 from powercontext.builtin.persistence.sqlite import SQLiteConfig
@@ -60,16 +70,6 @@ from powercontext.server.authentication import (
     AuthenticationProvider,
     StaticBearerAuthenticationProvider,
 )
-from powercontext.server.authz import (
-    AccessAction,
-    AccessAuditContext,
-    AccessControlService,
-    PrincipalRef,
-    ResourceRef,
-    access_control_for_mode,
-)
-from powercontext.server.authz.composition import open_builtin_access_control
-from powercontext.server.authz.repository import RelationalAccessRepository
 from powercontext.server.context import current_principal, current_request_id
 from powercontext.server.cursor_secret import resolve_cursor_secret
 from powercontext.server.dashboard import mount_dashboard

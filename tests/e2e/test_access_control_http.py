@@ -29,6 +29,8 @@ from powercontext.builtin.artifacts.atomic_memory.extraction import (
     AtomicMemoryExtractionOutput,
 )
 from powercontext.builtin.artifacts.handoff import HandoffDraft, HandoffGenerationRequest, HandoffStatement
+from powercontext.builtin.authz import AccessControlService, PrincipalRef, ResourceRef
+from powercontext.builtin.authz.composition import open_builtin_access_control, open_casbin_access_control
 from powercontext.builtin.inference import GenerationResult
 from powercontext.builtin.persistence.sqlite import SQLiteConfig
 from powercontext.builtin.runtime.config import InferenceConfig, RuntimeConfig
@@ -56,8 +58,6 @@ from powercontext.http import (
     RevokeAccessBindingRequest,
 )
 from powercontext.server.authentication import StaticBearerAuthenticationProvider
-from powercontext.server.authz import AccessControlService, PrincipalRef, ResourceRef
-from powercontext.server.authz.composition import open_builtin_access_control, open_casbin_access_control
 from powercontext.server.factory import create_server_app
 from powercontext.server.settings import (
     AccessControlConfig,
@@ -496,9 +496,9 @@ def test_query_parameters_cannot_override_path_authorization(tmp_path: Path) -> 
 
 
 def _scheduled_content_memory_worker(spec, assignment):
+    from powercontext.builtin.authz.worker import open_worker_security
     from powercontext.builtin.runtime.composition import open_builtin_contexts
     from powercontext.builtin.runtime.family_processing import process_family_invocation
-    from powercontext.server.processing_security import open_worker_security
 
     async def run():
         async with (

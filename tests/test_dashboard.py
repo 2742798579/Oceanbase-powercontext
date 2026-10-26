@@ -199,9 +199,9 @@ def test_malformed_usage_preserves_authorized_page_sections(dashboard: TestClien
 
 
 def test_dashboard_preserves_injected_atomic_read_rules(dashboard: TestClient, monkeypatch) -> None:
+    from powercontext.builtin.authz import AccessDeniedError
     from powercontext.builtin.runtime.application import BuiltinRuntime
     from powercontext.builtin.runtime.atomic_memory import AtomicMemoryAccess, AtomicMemoryApplication
-    from powercontext.server.authz import AccessDeniedError
 
     class DenyRead(AtomicMemoryAccess):
         async def authorize(self, connection, scope_id, context, action, ref=None):
@@ -1361,8 +1361,8 @@ def test_committed_handoff_json_and_its_sources_are_readable(dashboard: TestClie
 
 
 def test_dashboard_is_opt_in_and_enforced_access_requires_the_static_token_profile(tmp_path: Path, monkeypatch) -> None:
+    from powercontext.builtin.authz import PrincipalRef
     from powercontext.server.authentication import StaticBearerAuthenticationProvider
-    from powercontext.server.authz import PrincipalRef
 
     monkeypatch.setenv("POWERCONTEXT_SERVER_DASHBOARD_ENABLED", "false")
     database = SQLiteConfig(url=f"sqlite+aiosqlite:///{tmp_path}/disabled.db")
