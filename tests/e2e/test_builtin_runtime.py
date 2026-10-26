@@ -107,7 +107,9 @@ def test_atomic_memory_create_many_returns_exact_current_records() -> None:
             memories = runtime.atomic_memory.for_scope(scope.scope_id)
             contents = tuple(AtomicMemoryContent(kind="fact", text=f"Fact {index}") for index in range(3))
             created = await memories.create(contents)
-            assert tuple(record.artifact.content for record in created.records) == contents
+            assert tuple(record.artifact.content for record in created.records) == tuple(
+                content.model_copy(update={"description": content.text}) for content in contents
+            )
             assert tuple(record.artifact.revision for record in created.records) == (1, 1, 1)
             assert all(len(record.artifact.lineage.sources) == 1 for record in created.records)
             for record in created.records:
