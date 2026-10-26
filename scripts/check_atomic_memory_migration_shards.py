@@ -22,7 +22,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-GROUPS = ("scope-search", "background-metrics", "clean-migration", "long-query")
+GROUPS = ("scope-search", "background-metrics", "clean-migration", "startup-snapshot", "long-query")
 
 
 def verify_group(paths: list[Path], shards: int) -> int:

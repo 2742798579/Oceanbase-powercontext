@@ -29,8 +29,8 @@ CHECKER = Path(__file__).parents[1] / "scripts/check_atomic_memory_migration_sha
 def reports(tmp_path: Path) -> Path:
     root = tmp_path / "reports"
     for index in range(3):
-        for group in ("scope-search", "background-metrics", "clean-migration", "long-query"):
-            count = 1 if group == "background-metrics" else 5
+        for group in ("scope-search", "background-metrics", "clean-migration", "startup-snapshot", "long-query"):
+            count = {"background-metrics": 1, "startup-snapshot": 3}.get(group, 5)
             nodes = [f"test_{group}.py::test_oceanbase_case[{case}]" for case in range(count)]
             path = root / f"shard-{index}" / group / "summary.json"
             path.parent.mkdir(parents=True)
@@ -63,6 +63,7 @@ def test_complete_coverage_including_empty_shards_passes(reports: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert "background-metrics: all 1 OceanBase cases passed exactly once" in result.stdout
     assert "clean-migration: all 5 OceanBase cases passed exactly once" in result.stdout
+    assert "startup-snapshot: all 3 OceanBase cases passed exactly once" in result.stdout
 
 
 @pytest.mark.parametrize(
@@ -93,7 +94,9 @@ def test_incomplete_or_invalid_execution_fails(reports: Path, field: str, value:
     assert "Traceback" not in result.stderr
 
 
-@pytest.mark.parametrize("defect", ["missing-artifact", "extra-artifact", "missing-report", "duplicate-index"])
+@pytest.mark.parametrize(
+    "defect", ["missing-artifact", "extra-artifact", "missing-report", "missing-startup-report", "duplicate-index"]
+)
 def test_missing_or_duplicate_shard_evidence_fails(reports: Path, defect: str) -> None:
     if defect == "missing-artifact":
         shutil.rmtree(reports / "shard-2")
@@ -101,6 +104,8 @@ def test_missing_or_duplicate_shard_evidence_fails(reports: Path, defect: str) -
         shutil.copytree(reports / "shard-2", reports / "shard-3")
     elif defect == "missing-report":
         (reports / "shard-2" / "long-query" / "summary.json").unlink()
+    elif defect == "missing-startup-report":
+        (reports / "shard-2" / "startup-snapshot" / "summary.json").unlink()
     else:
         shutil.rmtree(reports / "shard-2")
         shutil.copytree(reports / "shard-0", reports / "shard-2")

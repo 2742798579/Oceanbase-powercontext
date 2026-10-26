@@ -118,9 +118,9 @@ git push origin name-of-your-bugfix-or-feature
 ## OceanBase migration acceptance
 
 The E2E harness runs Scope search migrations, background listener lifecycle, clean
-Atomic Memory migrations, and long-query acceptance on three isolated OceanBase
-runners. Every group collects and validates its full test collection before
-selecting zero-based shard `INDEX/COUNT`. Cases within each shard still run
+Atomic Memory migrations, managed startup consistency, and long-query acceptance
+on three isolated OceanBase runners. Every group collects and validates its full
+test collection before selecting zero-based shard `INDEX/COUNT`. Cases within each shard still run
 serially in separate pytest processes; skips and failures fail the shard.
 
 With the migration OceanBase URL configured as in `.github/workflows/e2e-harness.yml`,
@@ -138,7 +138,7 @@ execution, including a legitimately empty shard, marks the report complete.
 
 The aggregate check retains the name `Atomic Memory clean migration (OceanBase)`.
 It requires all three runners to succeed and verifies that their reports cover
-every collected node exactly once in each of the four groups. To verify downloaded
+every collected node exactly once in each of the five groups. To verify downloaded
 artifacts locally, keep each shard artifact in a separate subdirectory and run:
 
 ```bash

@@ -97,7 +97,7 @@ def test_three_shards_execute_every_collected_node_exactly_once(
     # Verify actual runner reports through the aggregate CLI's artifact layout.
     for index, report in enumerate(reports):
         artifact = tmp_path / "artifacts" / f"shard-{index}"
-        for group in ("scope-search", "background-metrics", "clean-migration", "long-query"):
+        for group in ("scope-search", "background-metrics", "clean-migration", "startup-snapshot", "long-query"):
             destination = artifact / group
             destination.mkdir(parents=True)
             (destination / "summary.json").write_text(json.dumps(report), encoding="utf-8")
