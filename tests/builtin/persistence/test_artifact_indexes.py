@@ -353,6 +353,80 @@ def test_incompatible_content_vector_write_preserves_search_and_history():
     asyncio.run(run())
 
 
+def test_initial_content_vector_validation_rejects_bad_record_without_requiring_index_resources():
+    async def run():
+        async with store() as (db, _, publisher):
+            base = declaration()
+            search_config = ArtifactSearchDeclaration(
+                version="1",
+                indexes=(
+                    *base.indexes,
+                    VectorIndex(
+                        name="semantic", fields=("text",), source="text", profile=PROFILE, projection_version="1"
+                    ),
+                ),
+                modes=base.modes,
+                default_mode="text",
+                defaults={
+                    "text": {"text": ("lexical",)},
+                    "vector": {"vector": ("visual",)},
+                    "hybrid": {"text": ("lexical",), "vector": ("visual",)},
+                },
+            )
+            await register(db, "reports", search_config)
+            wrong = PROFILE.model_copy(update={"profile_id": "features-v2", "model": "second"})
+            with pytest.raises(ValueError, match="profile differs"):
+                await write(db, publisher, "scope", "reports", "a", body("invalid", [1, 0], profile=wrong))
+            async with db.transaction() as connection:
+                with pytest.raises(RepositoryNotFoundError):
+                    await custom_artifact_repository("reports").latest(connection, "scope", "reports", "a")
+
+            # The family is still unready: neither the text encoder nor physical vector spaces are needed for this write.
+            stored = await write(db, publisher, "scope", "reports", "a", body("valid", [1, 0]))
+            assert stored.revision == 1
+
+    asyncio.run(run())
+
+
+def test_repair_content_vector_validation_rejects_bad_revision_across_ready_transition():
+    async def run():
+        async with store() as (db, builder, publisher):
+            await register(db, "reports", declaration())
+            original = await write(db, publisher, "scope", "reports", "a", body("original", [1, 0]))
+            await builder.refresh("scope", "reports")
+            assert await builder.build("scope", "reports")
+            await builder.refresh("scope", "reports", rebuild=True)
+
+            with pytest.raises(ValueError, match="dimension"):
+                await write(db, publisher, "scope", "reports", "a", body("invalid dimension", [1]))
+            async with db.transaction() as connection:
+                latest = await custom_artifact_repository("reports").latest(connection, "scope", "reports", "a")
+                assert latest.revision == original.revision
+                assert latest.content == original.content
+
+            duplicate = body("duplicate fragments", [1, 0], [0, 1])
+            duplicate["fragments"][1]["id"] = duplicate["fragments"][0]["id"]
+            with pytest.raises(ValueError, match="identities must be unique"):
+                await write(db, publisher, "scope", "reports", "a", duplicate)
+
+            changed = body("changed while repairing", [0, 1])
+            prepared = await publisher.prepare("scope", "reports", "1", changed)
+            assert await builder.build("scope", "reports")
+            repository = custom_artifact_repository("reports", prepared={"a": prepared})
+            draft = RepositoryArtifactDraft(
+                family="reports", content=StoredArtifactContent(schema_version="1", content=changed)
+            )
+            with pytest.raises(ValueError):
+                async with db.transaction() as connection:
+                    await repository.revise(connection, "scope", original, draft)
+            async with db.transaction() as connection:
+                latest = await repository.latest(connection, "scope", "reports", "a")
+                assert latest.revision == original.revision
+                assert latest.content == original.content
+
+    asyncio.run(run())
+
+
 def test_vector_profile_is_validated_against_requested_index():
     async def run():
         async with store() as (db, builder, _):

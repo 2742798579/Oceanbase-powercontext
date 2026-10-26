@@ -329,6 +329,34 @@ def vector_bytes(values, profile):
     return encoded
 
 
+def index_parts(index, content):
+    if isinstance(index, VectorIndex) and index.fragments is not None:
+        parts = content[index.fragments.array_field]
+        if not isinstance(parts, list):
+            raise ValueError("fragment projection requires a persistent array")  # noqa: TRY003
+    else:
+        parts = [content]
+    seen = set()
+    for offset, part in enumerate(parts):
+        fragment_id = "__whole__"
+        locator = {"fields": list(index.fields)}
+        if isinstance(index, VectorIndex) and index.fragments is not None:
+            fragment_id = part[index.fragments.id_field]
+            if not isinstance(fragment_id, str) or not 1 <= len(fragment_id) <= 128 or fragment_id == "__whole__":
+                raise ValueError("fragment identity must be a bounded persistent string")  # noqa: TRY003
+            locator = {"array": index.fragments.array_field, "id": fragment_id, "offset": offset}
+        if fragment_id in seen:
+            raise ValueError("fragment identities must be unique")  # noqa: TRY003
+        seen.add(fragment_id)
+        yield part, fragment_id, locator
+
+
+def content_vector(index, part):
+    if EmbeddingProfile.model_validate(part[index.profile_field]) != index.profile:
+        raise ValueError("persistent vector profile differs from the declared index")  # noqa: TRY003
+    return vector_bytes(part[index.vector_field], index.profile)
+
+
 @dataclass(frozen=True)
 class PreparedIndex:
     definition: dict[str, Any]
@@ -350,28 +378,11 @@ class ArtifactProjectionPublisher:
         self.database = database
         self.embedding_model = embedding_model
 
-    async def prepare_index(self, definition, content):  # noqa: C901 - Keep the complete projection or publication invariant together.
+    async def prepare_index(self, definition, content):
         index = parse_index(definition)
-        if isinstance(index, VectorIndex) and index.fragments is not None:
-            parts = content[index.fragments.array_field]
-            if not isinstance(parts, list):
-                raise ValueError("fragment projection requires a persistent array")  # noqa: TRY003
-        else:
-            parts = [content]
         fragments = []
         texts = []
-        seen = set()
-        for offset, part in enumerate(parts):
-            fragment_id = "__whole__"
-            locator = {"fields": list(index.fields)}
-            if isinstance(index, VectorIndex) and index.fragments is not None:
-                fragment_id = part[index.fragments.id_field]
-                if not isinstance(fragment_id, str) or not 1 <= len(fragment_id) <= 128 or fragment_id == "__whole__":
-                    raise ValueError("fragment identity must be a bounded persistent string")  # noqa: TRY003
-                locator = {"array": index.fragments.array_field, "id": fragment_id, "offset": offset}
-            if fragment_id in seen:
-                raise ValueError("fragment identities must be unique")  # noqa: TRY003
-            seen.add(fragment_id)
+        for part, fragment_id, locator in index_parts(index, content):
             value = {"fragment_id": fragment_id, "fragment_locator": identity_json(locator).decode()}
             if isinstance(index, TextIndex) or index.source == "text":
                 fields = [part[field] for field in index.fields]
@@ -383,9 +394,7 @@ class ArtifactProjectionPublisher:
                 else:
                     texts.append(original)
             else:
-                if EmbeddingProfile.model_validate(part[index.profile_field]) != index.profile:
-                    raise ValueError("persistent vector profile differs from the declared index")  # noqa: TRY003
-                value["embedding"] = vector_bytes(part[index.vector_field], index.profile)
+                value["embedding"] = content_vector(index, part)
             value["input_hash"] = digest({"projection": definition["definition_fingerprint"], "part": part})
             fragments.append(value)
         if texts:
@@ -440,6 +449,19 @@ class ArtifactProjectionPublisher:
     async def validate_prepared(self, connection, scope, family, schema_version, content, prepared):
         state = await lock_state(connection, scope, family)
         if state["state"] != "ready":
+            durable = await connection.scalar(
+                select(SCHEMAS.c.declaration).where(
+                    SCHEMAS.c.family == family, SCHEMAS.c.schema_version == schema_version
+                )
+            )
+            declaration = None if durable is None else search_declaration(durable)
+            if declaration is not None:
+                # Resource-independent content invariants hold even while projections are suspended.
+                for index in declaration.indexes:
+                    if isinstance(index, VectorIndex):
+                        for part, _, _ in index_parts(index, content):
+                            if index.source == "content":
+                                content_vector(index, part)
             return state
         expected = {entry["index_def_id"] for schema, entry in entries(state["manifest"]) if schema == schema_version}
         if prepared is None:

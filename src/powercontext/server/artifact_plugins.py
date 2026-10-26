@@ -25,6 +25,7 @@ from powercontext.builtin.artifact_plugin_validation import validate_plugin
 from powercontext.builtin.dream.bindings import DREAM_BINDINGS
 from powercontext.builtin.persistence.artifact_indexes import ArtifactIndexBuilder
 from powercontext.builtin.persistence.database import AsyncDatabase
+from powercontext.builtin.persistence.oceanbase import OceanBaseConfig
 from powercontext.builtin.persistence.sources import SOURCE_PROCESSING_BINDINGS
 from powercontext.builtin.persistence.sqlite import SQLiteConfig
 from powercontext.builtin.persistence.tables import (
@@ -150,7 +151,7 @@ class ArtifactPluginManager:
                     ArtifactProcessingSupervisor(
                         database=self.database,
                         bindings=(),
-                        lease_mode="single-process",
+                        lease_mode="oceanbase" if isinstance(self.config, OceanBaseConfig) else "single-process",
                     )
                 )
                 self.supervisor = ArtifactProcessingSupervisors((controller,))
