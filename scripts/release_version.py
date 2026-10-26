@@ -45,13 +45,13 @@ REFERENCE_PREFIXES = {
         *INSTALL_REFERENCES,
         r"PowerContext ",
         r"package `",
-        r"^To upgrade to ",
+        r"^To install ",
     ),
     "docs/zh/docs/get-started/install-and-run.md": (
         *INSTALL_REFERENCES,
         r"PowerContext ",
         r"Python 包版本为 `",
-        r"^升级到 ",
+        r"^安装 ",
     ),
     "integrations/dsh/plugins/powercontext/README.md": INSTALL_REFERENCES,
 }
