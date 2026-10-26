@@ -40,8 +40,8 @@ from powercontext.builtin.artifacts.skill.external import AgentEnvironmentProfil
 from powercontext.builtin.persistence.sqlite import SQLiteConfig
 from powercontext.builtin.runtime import DecisionModel, DecisionOutcome, RuntimeConfig
 from powercontext.builtin.runtime.config import ExternalSkillsConfig
-from powercontext.cli.env_file import EnvironmentFileError, read_environment_file
 from powercontext.client import PowerContextClient
+from powercontext.env_file import EnvironmentFileError, read_environment_file
 from powercontext.http import ArtifactReference
 from powercontext.server.factory import create_server_app
 from powercontext.server.settings import McpConfig, MetricsConfig, ServerSettings

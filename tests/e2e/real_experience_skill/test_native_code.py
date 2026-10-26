@@ -35,8 +35,8 @@ from powercontext.builtin.persistence.oceanbase import OceanBaseConfig, OceanBas
 from powercontext.builtin.persistence.sqlite import SQLiteConfig
 from powercontext.builtin.runtime import BuiltinConfig, open_builtin_runtime
 from powercontext.builtin.scope import ScopeDraft
-from powercontext.cli.env_file import environment_context
 from powercontext.client import PowerContextClient
+from powercontext.env_file import environment_context
 from powercontext.http import PrepareContextRequest, RememberMemoryRequest
 from powercontext.server.configuration import server_settings_context
 from powercontext.server.settings import McpConfig, MetricsConfig
