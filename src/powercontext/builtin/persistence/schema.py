@@ -25,8 +25,12 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 async def create_tables(connection: AsyncConnection, tables: Sequence[Table], /) -> None:
     """Create missing tables and indexes using SQLAlchemy's native metadata support."""
 
+    from powercontext.builtin.persistence.tables import ARTIFACT_VECTORS_TABLE
+
     groups: dict[MetaData, list[Table]] = {}
     for table in tables:
+        if table is ARTIFACT_VECTORS_TABLE and connection.dialect.name != "sqlite":
+            continue
         groups.setdefault(table.metadata, []).append(table)
 
     for metadata, selected in groups.items():
@@ -37,6 +41,24 @@ async def create_tables(connection: AsyncConnection, tables: Sequence[Table], /)
                 checkfirst=True,
             )
         )
+
+    if any(table.name == "pc_artifact_search_text" for table in tables):
+        from powercontext.builtin.persistence.artifact_search_schema import ensure_search_support
+
+        await connection.run_sync(ensure_search_support)
+    if connection.dialect.name != "sqlite" and any(table.name == "pc_artifact_vector_spaces" for table in tables):
+        from sqlalchemy import select
+
+        from powercontext.builtin.persistence.artifact_indexes import SCHEMAS, register_definition, search_declaration
+        from powercontext.builtin.persistence.artifact_vector_space import provision_native_spaces
+
+        rows = (await connection.execute(select(SCHEMAS))).mappings().all()
+        for row in rows:
+            declaration = search_declaration(row["declaration"])
+            if declaration is not None:
+                for index in declaration.indexes:
+                    await register_definition(connection, row["family"], row["schema_version"], index)
+        await connection.run_sync(provision_native_spaces)
 
 
 async def ensure_portable_timestamp_precision(connection: AsyncConnection, tables: Sequence[Table]) -> None:

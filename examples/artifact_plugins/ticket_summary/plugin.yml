@@ -1,0 +1,12 @@
+id: example-ticket-summary
+version: "1"
+entry: ./plugin.py:create_pipeline
+binding_name: ticket-summaries
+scope_ids: [team-b]
+max_sources: 4
+processing:
+  interval_seconds: 5
+  max_workers: 2
+  timeout_seconds: 90
+config:
+  language: 简体中文

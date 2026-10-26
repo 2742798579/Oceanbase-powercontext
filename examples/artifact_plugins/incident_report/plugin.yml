@@ -1,0 +1,12 @@
+id: example-incident-report
+version: "1"
+entry: ./plugin.py:create_pipeline
+binding_name: incident-reports
+scope_ids: [team-a]
+max_sources: 20
+processing:
+  interval_seconds: 1
+  max_workers: 1
+  timeout_seconds: 60
+config:
+  title_prefix: 工单快照报告
