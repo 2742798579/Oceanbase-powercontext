@@ -5544,7 +5544,9 @@ export interface components {
             /** @enum {string} */
             kind?: "collect" | "write";
             enabled?: boolean;
+            /** @description Default collect status only. The single Source reference from the submission report most recently received by the manager, or empty before any report. Omitted from collect add responses; not a batch result or submission history. */
             source_refs?: components["schemas"]["SourceTypeReference"][];
+            /** @description Default collect status only. Runtime-reported submission time paired with source_refs, or null before any report. Selection follows manager receipt order, not timestamp order. Omitted from collect add responses. */
             last_submitted_at?: string | null;
         };
         SourceInstanceStatus: {
@@ -5600,6 +5602,7 @@ export interface components {
             };
             /** @enum {string} */
             status?: "running" | "complete" | "completed" | "pending" | "failed" | "stopped" | "cleanup-failed";
+            /** @description One confirmed Source submission reported by the Runtime; not a batch or historical reference list. */
             source_refs?: components["schemas"]["SourceTypeReference"][];
             error?: string;
             targets?: {

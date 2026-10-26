@@ -3669,8 +3669,19 @@ class SourceManagementReceipt(BaseModel):
     updated_at: StrictStr | None = None
     kind: Kind10 | None = None
     enabled: StrictBool | None = None
-    source_refs: list[SourceTypeReference] | None = None
-    last_submitted_at: StrictStr | None = None
+    source_refs: Annotated[
+        list[SourceTypeReference] | None,
+        Field(
+            description="Default collect status only. The single Source reference from the submission report most recently received by the manager, or empty before any report. Omitted from collect add responses; not a batch result or submission history.",
+            max_length=1,
+        ),
+    ] = None
+    last_submitted_at: Annotated[
+        StrictStr | None,
+        Field(
+            description="Default collect status only. Runtime-reported submission time paired with source_refs, or null before any report. Selection follows manager receipt order, not timestamp order. Omitted from collect add responses."
+        ),
+    ] = None
 
 
 class SourceInstanceStatus(BaseModel):
@@ -3742,7 +3753,14 @@ class SourceInstanceExchangeRequest(BaseModel):
     response: dict[str, Any] | None = None
     owner: dict[str, Any] | None = None
     status: Status6 | None = None
-    source_refs: Annotated[list[SourceTypeReference] | None, Field(max_length=1000)] = None
+    source_refs: Annotated[
+        list[SourceTypeReference] | None,
+        Field(
+            description="One confirmed Source submission reported by the Runtime; not a batch or historical reference list.",
+            max_length=1,
+            min_length=1,
+        ),
+    ] = None
     error: Annotated[StrictStr | None, Field(max_length=1024)] = None
     targets: Annotated[list[dict[str, Any]] | None, Field(max_length=256)] = None
     cursor: Annotated[StrictStr | None, Field(max_length=256)] = None

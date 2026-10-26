@@ -32,8 +32,9 @@ from powercontext.server.settings import (
 from powercontext.source_management.config import Endpoint, ManagerConfig, RuntimeConfig, configuration_digest
 from powercontext.source_management.loading import load_runtime_plugin
 from powercontext.source_management.manager import create_manager_app
-from powercontext.source_management.models import InstanceRegistration
+from powercontext.source_management.models import InstanceRegistration, ManagementError
 from powercontext.source_management.runtime import SourceRuntime
+from powercontext.source_management.storage import Store
 from tests.source_helpers import protected, wait_until
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples/source_plugins"
@@ -358,6 +359,78 @@ capabilities = (Capability(name="tickets.item", version="2", kind="write", descr
                     await tool(
                         host, "pc_source_instance_set_enabled", {"instance_id": config.instance_id, "enabled": False}
                     )
+
+    scenario_runner.run(scenario())
+
+
+def test_collect_status_keeps_only_the_last_received_submission(tmp_path, scenario_runner):
+    async def scenario():
+        async with (
+            source_server(tmp_path) as (_app, url, tokens, scope),
+            management(tmp_path, url, tokens) as (_manager, manager_url),
+        ):
+            config = await configured_runtime(tmp_path, url, manager_url, tokens, scope)
+            async with (
+                running(config) as runtime,
+                Client(url + "/mcp", auth=tokens["host"]) as host,
+                httpx.AsyncClient(base_url=url, headers={"Authorization": "Bearer " + tokens["host"]}) as http,
+            ):
+                await discover_running(host, scope)
+                arguments = {
+                    "scope_id": scope,
+                    "instance_id": config.instance_id,
+                    "capability": "tickets.item",
+                    "capability_version": "1",
+                    "input": {"id": "missing"},
+                }
+                added = await tool(host, "pc_source_add", arguments)
+                target_id = added["target_id"]
+                assert "source_refs" not in added and "last_submitted_at" not in added
+                initial = await status(host, scope, {"target_id": target_id})
+                assert initial["source_refs"] == [] and initial.get("last_submitted_at") is None
+                references = [
+                    {"source_type": "example-ticket", "source_id": "a" * 256},
+                    {"source_type": "example-chat", "source_id": '界\\"\n' * 63 + "xxxx"},
+                ]
+                # Each report confirms one item. Arrival order, not the Runtime clock, selects the state.
+                # Reporting an earlier Source again is still a new confirmation, not a history union.
+                reports = [
+                    {
+                        "target_id": target_id,
+                        "source_refs": [reference],
+                        "submitted_at": f"2026-10-26T00:00:0{3 - index}+00:00",
+                    }
+                    for index, reference in enumerate([*references, references[0]])
+                ]
+                for report in reports:
+                    assert await runtime.post("results", report) == {"confirmed": True}
+                    response = await http.post(
+                        "/v1/source-management/status", json={"scope_id": scope, "target_id": target_id}
+                    )
+                    assert response.status_code == 200, response.text
+                    repeated = await tool(host, "pc_source_add", arguments)
+                    assert repeated == added
+                    receipt = response.json()
+                    assert receipt["target_id"] == target_id
+                    assert receipt["source_refs"] == report["source_refs"]
+                    assert receipt["last_submitted_at"] == report["submitted_at"]
+                    assert receipt["tracking"] == added["tracking"]
+                repeated_http = await http.post("/v1/source-management/add", json=arguments)
+                assert repeated_http.status_code == 200, repeated_http.text
+                assert repeated_http.json() == added
+                with pytest.raises(ManagementError, match="instance request is invalid"):
+                    await runtime.post("results", {**reports[-1], "source_refs": references})
+                unchanged = await status(host, scope, {"target_id": target_id})
+                assert unchanged["source_refs"] == reports[-1]["source_refs"]
+                assert unchanged["last_submitted_at"] == reports[-1]["submitted_at"]
+        store = Store(tmp_path / "management")
+        try:
+            persisted = store.get("target", target_id)
+            assert persisted is not None
+            assert persisted["source_refs"] == reports[-1]["source_refs"]
+            assert persisted["last_submitted_at"] == reports[-1]["submitted_at"]
+        finally:
+            store.close()
 
     scenario_runner.run(scenario())
 

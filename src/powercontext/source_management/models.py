@@ -99,7 +99,7 @@ class InstanceRegistration(Model):
 class TargetSubmissionReport(Model):
     generation: str
     target_id: str = Field(min_length=1, max_length=128)
-    source_refs: tuple[SourceRef, ...] = Field(min_length=1, max_length=1000)
+    source_refs: tuple[SourceRef, ...] = Field(min_length=1, max_length=1)
     submitted_at: str
 
 

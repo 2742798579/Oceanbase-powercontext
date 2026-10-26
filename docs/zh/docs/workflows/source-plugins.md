@@ -92,7 +92,7 @@ pc_source_add({
 pc_source_status({"scope_id":"SCOPE_ID","target_id":"TARGET_ID"})
 ```
 
-add 返回目标身份，不能据此认定外部资料已保存。状态中的 Source 引用是已确认的提交结果。相同目标重复 add 复用，不恢复已停用目标。可选 `targets` 清单只用于首次初始化，后续以管理服务记录为准。
+add 和重复 add 返回目标身份及控制状态，不携带 Source 引用和提交时间。状态查询只携带管理服务最近收到的一次成功提交报告：`source_refs` 包含一个引用，`last_submitted_at` 是同一报告的提交时间；尚未收到报告时，引用为空数组，也没有提交时间。报告按接收顺序覆盖，这既不表示一批已完成，也不是已采集 Source 的历史清单。管理服务不累计历史引用，报告丢失不撤销已保存的 Source。插件仍从每次真实提交回执取得 SourceRef，并用 checkpoint 管理采集进度。相同目标重复 add 复用，不重启采集，也不恢复已停用目标。可选 `targets` 清单只用于首次初始化，后续以管理服务记录为准。
 
 ## 远端 collect Runtime
 

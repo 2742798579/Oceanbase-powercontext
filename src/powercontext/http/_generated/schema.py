@@ -13170,8 +13170,78 @@ OPENAPI_SCHEMA: dict[str, JsonValue] = {
                     "updated_at": {"type": "string"},
                     "kind": {"type": "string", "enum": ["collect", "write"]},
                     "enabled": {"type": "boolean"},
-                    "source_refs": {"items": {"$ref": "#/components/schemas/SourceTypeReference"}, "type": "array"},
-                    "last_submitted_at": {"type": "string", "nullable": True},
+                    "source_refs": {
+                        "items": {"$ref": "#/components/schemas/SourceTypeReference"},
+                        "type": "array",
+                        "maxItems": 1,
+                        "description": "Default "
+                        "collect "
+                        "status "
+                        "only. "
+                        "The "
+                        "single "
+                        "Source "
+                        "reference "
+                        "from "
+                        "the "
+                        "submission "
+                        "report "
+                        "most "
+                        "recently "
+                        "received "
+                        "by "
+                        "the "
+                        "manager, "
+                        "or "
+                        "empty "
+                        "before "
+                        "any "
+                        "report. "
+                        "Omitted "
+                        "from "
+                        "collect "
+                        "add "
+                        "responses; "
+                        "not "
+                        "a "
+                        "batch "
+                        "result "
+                        "or "
+                        "submission "
+                        "history.",
+                    },
+                    "last_submitted_at": {
+                        "type": "string",
+                        "description": "Default "
+                        "collect "
+                        "status "
+                        "only. "
+                        "Runtime-reported "
+                        "submission "
+                        "time "
+                        "paired "
+                        "with "
+                        "source_refs, "
+                        "or "
+                        "null "
+                        "before "
+                        "any "
+                        "report. "
+                        "Selection "
+                        "follows "
+                        "manager "
+                        "receipt "
+                        "order, "
+                        "not "
+                        "timestamp "
+                        "order. "
+                        "Omitted "
+                        "from "
+                        "collect "
+                        "add "
+                        "responses.",
+                        "nullable": True,
+                    },
                 },
                 "additionalProperties": False,
                 "type": "object",
@@ -13246,7 +13316,23 @@ OPENAPI_SCHEMA: dict[str, JsonValue] = {
                     "source_refs": {
                         "items": {"$ref": "#/components/schemas/SourceTypeReference"},
                         "type": "array",
-                        "maxItems": 1000,
+                        "maxItems": 1,
+                        "minItems": 1,
+                        "description": "One "
+                        "confirmed "
+                        "Source "
+                        "submission "
+                        "reported "
+                        "by "
+                        "the "
+                        "Runtime; "
+                        "not "
+                        "a "
+                        "batch "
+                        "or "
+                        "historical "
+                        "reference "
+                        "list.",
                     },
                     "error": {"type": "string", "maxLength": 1024},
                     "targets": {

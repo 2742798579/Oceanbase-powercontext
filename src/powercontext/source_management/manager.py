@@ -351,7 +351,7 @@ class SourceManager:
                 if target["input"] != identified.normalized_input:
                     raise ManagementError("target-config-conflict", "The target already has different settings", 409)
                 self.store.claim_identity(identity, target["target_id"])
-                return self.receipt(target)
+                return self.target_control(target)
             instance = self.instance(instance["instance_id"])
             if not self.runnable(instance):
                 raise ManagementError("instance-unavailable", "The plugin is not running", 503)
@@ -371,7 +371,7 @@ class SourceManager:
             with self.store.transaction():
                 self.store.claim_identity(identity, target["target_id"])
                 self.save_work(target)
-            return self.receipt(target)
+            return self.target_control(target)
 
     async def target_set_enabled(self, caller, parameters):
         async with self._lock:
@@ -510,9 +510,9 @@ class SourceManager:
         target = self.target(report.target_id)
         if target["instance_id"] != instance["instance_id"]:
             raise ManagementError("forbidden", "The target belongs to another instance", 403)
-        refs = [r.model_dump(mode="json") for r in report.source_refs]
-        target["source_refs"] = list({canonical(r): r for r in target.get("source_refs", []) + refs}.values())
-        target["last_submitted_at"] = max(target.get("last_submitted_at") or "", report.submitted_at)
+        # This is the last received submission report, not a history or a completed batch.
+        target["source_refs"] = [report.source_refs[0].model_dump(mode="json")]
+        target["last_submitted_at"] = report.submitted_at
         self.save_work(target)
         return {"confirmed": True}
 

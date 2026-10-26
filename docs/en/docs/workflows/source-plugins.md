@@ -94,7 +94,7 @@ pc_source_add({
 pc_source_status({"scope_id":"SCOPE_ID","target_id":"TARGET_ID"})
 ```
 
-Add returns a target identity, not proof that external content has been saved. Status reports confirmed Source submissions. Repeated add reuses the same target without re-enabling a disabled one. Optional manifest `targets` only initialize the first deployment; subsequent target state belongs to the manager.
+Add and repeated add return the target identity and control state, without Source references or submission time. Status includes only the manager's most recently received successful submission report: `source_refs` contains one reference, paired with `last_submitted_at`. Before any report, the reference array is empty and no submission time is available. Reports replace this state in arrival order; it is neither a completed batch nor a history of collected Sources. The manager does not accumulate historical references, and a lost report does not undo a saved Source. Plugins retain the real SourceRef in each submission receipt and use checkpoints for collection progress. Repeated add reuses the same target without restarting collection or re-enabling a disabled one. Optional manifest `targets` only initialize the first deployment; subsequent target state belongs to the manager.
 
 ## Remote collect Runtimes
 

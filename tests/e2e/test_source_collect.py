@@ -44,13 +44,22 @@ async def checkpoint(client, scope, identifier, *, after=None):
             await asyncio.sleep(0.1)
 
 
-async def received(client, scope, target, count):
+async def received(client, scope, target, count, *, namespace):
     async with asyncio.timeout(40):
         while True:
             response = await client.post("/v1/source-management/status", json={"scope_id": scope, "target_id": target})
             assert response.status_code == 200, response.text
-            if len(response.json()["source_refs"]) == count:
-                return response.json()
+            status = response.json()
+            page = await client.get(f"/v1/scopes/{scope}/sources")
+            assert page.status_code == 200, page.text
+            assert page.json()["next_cursor"] is None
+            sources = [
+                item for item in page.json()["items"] if item["content"]["payload"]["capture"]["namespace"] == namespace
+            ]
+            if len(sources) == count:
+                latest = max(sources, key=lambda item: item["position"])
+                if status["source_refs"] == [{"source_type": latest["source_type"], "source_id": latest["source_id"]}]:
+                    return status
             await asyncio.sleep(0.1)
 
 
@@ -118,7 +127,7 @@ async def apply(ctx, config):
                     assert added.status_code == 200, added.text
                     target = added.json()["target_id"]
                     targets[instance.name, scope] = target
-                    await received(admin, scope, target, 2)
+                    await received(admin, scope, target, 2, namespace=instance.name)
             previous = await checkpoint(admin, scopes[1], "first")
             stopped_target = await admin.post(
                 "/v1/source-management/target-set-enabled",
@@ -146,7 +155,7 @@ async def apply(ctx, config):
             replacement = first / "events.next.json"
             replacement.write_text(json.dumps(fixture))
             replacement.replace(first / "events.json")
-            await received(admin, scopes[0], targets["first", scopes[0]], 3)
+            await received(admin, scopes[0], targets["first", scopes[0]], 3, namespace="first")
             assert await checkpoint(admin, scopes[1], "first") == previous
             await set_enabled(admin, "first", False)
             assert (first / "closed").exists()
@@ -157,7 +166,7 @@ async def apply(ctx, config):
             replacement = second / "events.next.json"
             replacement.write_text(json.dumps(fixture))
             replacement.replace(second / "events.json")
-            await received(admin, scopes[1], targets["second", scopes[1]], 3)
+            last_success = await received(admin, scopes[1], targets["second", scopes[1]], 3, namespace="second")
             # Submission reports can precede checkpoint persistence. Wait for both.
             previous = await checkpoint(admin, scopes[1], "second", after=previous)
             # A rejected observation must not advance the Scope's checkpoint.
@@ -167,7 +176,9 @@ async def apply(ctx, config):
             await instance_state(admin, "second", "failed")
             assert (second / "closed").exists()
             assert await checkpoint(admin, scopes[1], "second") == previous
-            assert len((await received(admin, scopes[1], targets["second", scopes[1]], 3))["source_refs"]) == 3
+            failed = await received(admin, scopes[1], targets["second", scopes[1]], 3, namespace="second")
+            assert failed["source_refs"] == last_success["source_refs"]
+            assert failed["last_submitted_at"] == last_success["last_submitted_at"]
         finally:
             await stop_services(directory, state)
 
@@ -222,7 +233,7 @@ async def _scope_shrink_and_discovery(directory):
                 )
                 assert response.status_code == 200, response.text
                 targets[scope] = response.json()["target_id"]
-                await received(admin, scope, targets[scope], 2)
+                await received(admin, scope, targets[scope], 2, namespace="scope-review")
             previous = await checkpoint(admin, scopes[1], "scope-review")
             await set_enabled(admin, "scope-review", False)
             runtime_config = state / "instances/scope-review/runtime-config.json"
@@ -236,17 +247,17 @@ async def _scope_shrink_and_discovery(directory):
             fixture["tickets"][0]["body"] = "Changed after removing a Scope"
             (plugin / "events.json").write_text(json.dumps(fixture))
             await set_enabled(admin, "scope-review", True)
-            await received(admin, scopes[0], targets[scopes[0]], 3)
+            await received(admin, scopes[0], targets[scopes[0]], 3, namespace="scope-review")
             # Observe another collection cycle before draining, regardless of target iteration order.
             fixture["tickets"][0]["body"] = "Another change while the Scope remains excluded"
             replacement = plugin / "events.next.json"
             replacement.write_text(json.dumps(fixture))
             replacement.replace(plugin / "events.json")
-            await received(admin, scopes[0], targets[scopes[0]], 4)
+            await received(admin, scopes[0], targets[scopes[0]], 4, namespace="scope-review")
             # Stop and drain actual work before checking the removed Scope's stored progress.
             await set_enabled(admin, "scope-review", False)
             assert await checkpoint(admin, scopes[1], "scope-review") == previous
-            assert len((await received(admin, scopes[1], targets[scopes[1]], 2))["source_refs"]) == 2
+            await received(admin, scopes[1], targets[scopes[1]], 2, namespace="scope-review")
             page = await admin.get(f"/v1/scopes/{scopes[1]}/sources")
             assert page.status_code == 200 and len(page.json()["items"]) == 2
 
@@ -258,7 +269,7 @@ async def _scope_shrink_and_discovery(directory):
             )
             assert response.status_code == 200, response.text
             await set_enabled(admin, "scope-review", True)
-            restored = await received(admin, scopes[1], targets[scopes[1]], 3)
+            restored = await received(admin, scopes[1], targets[scopes[1]], 3, namespace="scope-review")
             assert restored["target_id"] == targets[scopes[1]]
             receipts = [json.loads(line) for line in (plugin / "receipts.jsonl").read_text().splitlines()]
             assert any(r["scope_id"] == scopes[1] and r["source"] in restored["source_refs"] for r in receipts)
