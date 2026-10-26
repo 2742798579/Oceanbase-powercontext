@@ -63,7 +63,7 @@ def run_runner(
     return subprocess.run(
         [sys.executable, str(RUNNER), backend, "--output", str(output), *arguments, "--tests", *tests],
         cwd=directory,
-        env={**os.environ, "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1"},
+        env={**os.environ, "PYTEST_ADDOPTS": "", "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1"},
         capture_output=True,
         text=True,
         check=False,
@@ -71,7 +71,11 @@ def run_runner(
     )
 
 
-def test_three_shards_execute_every_collected_node_exactly_once(tmp_path: Path) -> None:
+def test_three_shards_execute_every_collected_node_exactly_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The temporary suites do not load the repository's CI-only pytest options.
+    monkeypatch.setenv("PYTEST_ADDOPTS", "--require-dsh-config-runtime")
     write_suite(tmp_path, 5)
     reports = []
     for index in range(3):
