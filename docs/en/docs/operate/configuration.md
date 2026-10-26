@@ -133,6 +133,11 @@ still occupies an HTTP slot until it finishes; reserve other slots for concurren
 | `POWERCONTEXT_SERVER_LOGGING_LEVEL` | `INFO` | Operational log level |
 | `POWERCONTEXT_SERVER_LOGGING_FORMAT` | `console` | `console` or structured `json` output |
 | `POWERCONTEXT_SERVER_LOGGING_ACCESS` | `true` | Log external HTTP and logical MCP request completion |
+| `POWERCONTEXT_SERVER_LOGGING_FILE` | `false` | Write managed files instead of stdout; enabled by default for macOS/Windows personal services |
+| `POWERCONTEXT_SERVER_LOGGING_DIRECTORY` | User data directory + `logs/` | Managed log directory |
+| `POWERCONTEXT_SERVER_LOGGING_MAX_BYTES` | `20971520` | Positive size threshold for rotation |
+| `POWERCONTEXT_SERVER_LOGGING_BACKUP_COUNT` | `10` | Positive maximum archive count per active file |
+| `POWERCONTEXT_SERVER_LOGGING_COMPRESSION` | `gzip` | Archive compression: `gzip` or `none` |
 | `POWERCONTEXT_SERVER_METRICS_ENABLED` | `true` | Expose Prometheus metrics at `/metrics` |
 | `POWERCONTEXT_SERVER_METRICS_BACKGROUND_PORT` | `8001` | Background-role infrastructure listener port; uses `HTTP_HOST` and is disabled with metrics |
 | `POWERCONTEXT_SERVER_TRACING_ENABLED` | `false` | Enable span recording and OTLP export |
@@ -203,6 +208,8 @@ still occupies an HTTP slot until it finishes; reserve other slots for concurren
 | `POWERCONTEXT_SERVER_INFERENCE_GENERATION_MODEL_SETTINGS` | `{}` | JSON object of Pydantic AI generation model settings |
 | `POWERCONTEXT_SERVER_INFERENCE_GENERATION_TIMEOUT_SECONDS` | `30` | Timeout in seconds for one structured generation operation |
 | `POWERCONTEXT_SERVER_INFERENCE_GENERATION_MAX_REQUESTS` | `2` | Maximum provider requests for one structured generation operation, including retries |
+| `POWERCONTEXT_SERVER_INFERENCE_GENERATION_STREAMING` | `disabled` | When `auto`, only generation models whose provider prefix is `anthropic`, `openai`, `openai-chat`, or `openai-responses` use a streamed request aggregated locally into one complete response. Other prefixes stay on non-streaming requests. `disabled` keeps every model on non-streaming requests |
+| `POWERCONTEXT_SERVER_INFERENCE_GENERATION_STREAM_IDLE_TIMEOUT_SECONDS` | `60` | Maximum idle seconds while aggregating a streamed request: while the stream opens and waits for its first model event, and between model events (text, thinking, or tool-call parts). Provider heartbeat frames do not reset this timer; a longer gap fails as a timeout |
 | `POWERCONTEXT_SERVER_INFERENCE_GENERATION_MODEL_CONTEXT_WINDOW_TOKENS` | `125000` | Total generation-model context window used to budget Topic processing |
 | `POWERCONTEXT_SERVER_INFERENCE_EMBEDDING_MODEL` | unset | Pydantic AI embedding model; requires profile ID and dimension |
 | `POWERCONTEXT_SERVER_INFERENCE_EMBEDDING_BASE_URL` | provider default | Custom OpenAI-compatible embeddings base URL |

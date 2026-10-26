@@ -120,6 +120,11 @@ MCP 使用 stateless Streamable HTTP，每次工具执行都采用当前请求�
 | `POWERCONTEXT_SERVER_LOGGING_LEVEL` | `INFO` | operational log 级别 |
 | `POWERCONTEXT_SERVER_LOGGING_FORMAT` | `console` | `console` 或结构化 `json` 输出 |
 | `POWERCONTEXT_SERVER_LOGGING_ACCESS` | `true` | 记录外部 HTTP 和逻辑 MCP request completion |
+| `POWERCONTEXT_SERVER_LOGGING_FILE` | `false` | 写入托管文件以替代 stdout；macOS/Windows 个人服务默认开启 |
+| `POWERCONTEXT_SERVER_LOGGING_DIRECTORY` | 用户数据目录下的 `logs/` | 托管日志目录 |
+| `POWERCONTEXT_SERVER_LOGGING_MAX_BYTES` | `20971520` | 按大小轮替的阈值，必须为正数 |
+| `POWERCONTEXT_SERVER_LOGGING_BACKUP_COUNT` | `10` | 每个活动文件最多保留的归档数，至少为一 |
+| `POWERCONTEXT_SERVER_LOGGING_COMPRESSION` | `gzip` | 归档压缩方式：`gzip` 或 `none` |
 | `POWERCONTEXT_SERVER_METRICS_ENABLED` | `true` | 在 `/metrics` 暴露 Prometheus metrics |
 | `POWERCONTEXT_SERVER_METRICS_BACKGROUND_PORT` | `8001` | Background role 的 infrastructure listener 端口；使用 `HTTP_HOST`，随 metrics 一起关闭 |
 | `POWERCONTEXT_SERVER_TRACING_ENABLED` | `false` | 启用 span recording 和 OTLP export |
@@ -190,6 +195,8 @@ MCP 使用 stateless Streamable HTTP，每次工具执行都采用当前请求�
 | `POWERCONTEXT_SERVER_INFERENCE_GENERATION_MODEL_SETTINGS` | `{}` | Pydantic AI generation model settings JSON object |
 | `POWERCONTEXT_SERVER_INFERENCE_GENERATION_TIMEOUT_SECONDS` | `30` | 单次结构化 generation 操作的超时秒数 |
 | `POWERCONTEXT_SERVER_INFERENCE_GENERATION_MAX_REQUESTS` | `2` | 单次结构化 generation 操作最多发起的 provider 请求数，包含重试 |
+| `POWERCONTEXT_SERVER_INFERENCE_GENERATION_STREAMING` | `disabled` | `auto` 时，仅模型名前缀为 `anthropic`、`openai`、`openai-chat`、`openai-responses` 的 generation 模型改用流式请求并在本地聚合为完整响应。其他前缀仍走非流式。`disabled` 时全部保持非流式请求 |
+| `POWERCONTEXT_SERVER_INFERENCE_GENERATION_STREAM_IDLE_TIMEOUT_SECONDS` | `60` | 流式聚合时的最大空闲秒数：覆盖等待流建立并收到首个模型事件，以及相邻模型事件（正文、思考、工具调用）之间的间隔。供应商心跳不重置这个计时，超过即按超时处理 |
 | `POWERCONTEXT_SERVER_INFERENCE_GENERATION_MODEL_CONTEXT_WINDOW_TOKENS` | `125000` | Topic 处理预算使用的 generation model 总上下文窗口 |
 | `POWERCONTEXT_SERVER_INFERENCE_EMBEDDING_MODEL` | 未设置 | Pydantic AI embedding model；必须同时设置 profile ID 和 dimension |
 | `POWERCONTEXT_SERVER_INFERENCE_EMBEDDING_BASE_URL` | provider 默认值 | 自定义 OpenAI-compatible embeddings base URL |
