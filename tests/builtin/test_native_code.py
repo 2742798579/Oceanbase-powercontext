@@ -775,9 +775,7 @@ def test_http_client_mcp_and_prepared_code_share_freshness(repository, tmp_path)
     async def exercise():
         nonlocal app
         database = SQLiteConfig(url=f"sqlite+aiosqlite:///{tmp_path / 'http.db'}")
-        async with open_builtin_runtime(
-            BuiltinConfig(database=database), scheduler_path=tmp_path / "scheduler.db"
-        ) as runtime:
+        async with open_builtin_runtime(BuiltinConfig(database=database)) as runtime:
             assert runtime.scopes is not None
             scope = await runtime.scopes.create(
                 ScopeDraft(title="Code fixture", summary="Native acceptance", idempotency_key="code-test")

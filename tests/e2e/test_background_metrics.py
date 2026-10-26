@@ -19,11 +19,11 @@ from pathlib import Path
 
 import pytest
 
+from powercontext.builtin.authz import PrincipalRef
+from powercontext.builtin.authz.composition import open_builtin_access_control
 from powercontext.builtin.persistence.oceanbase import OceanBaseConfig
 from powercontext.builtin.runtime.composition import open_builtin_runtime
 from powercontext.builtin.runtime.config import BuiltinConfig, RuntimeConfig
-from powercontext.server.authz import PrincipalRef
-from powercontext.server.authz.composition import open_builtin_access_control
 
 
 async def _initialize_background_database(config: BuiltinConfig) -> None:

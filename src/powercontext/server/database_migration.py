@@ -109,7 +109,7 @@ def plan(
     """Preview the target, resource digests, backup policy, and maintenance scope."""
     with _operator_errors(), server_settings_context(env_file=_environment_file(env_file)) as settings:
         runner = deployment_runner(
-            settings, evidence_dir=evidence_dir, lock_coordination=lock_coordination, bundle=bundle
+            settings.database, evidence_dir=evidence_dir, lock_coordination=lock_coordination, bundle=bundle
         )
         service = _service_scope(_environment_file(env_file)) if manage_service else None
         reviewed = runner.plan(backup_policy=backup, service=service, shared_database=shared_database)
@@ -155,7 +155,7 @@ def apply(
     """Review once, then stop writes, back up, migrate, verify, and optionally switch a local service."""
     with _operator_errors(), server_settings_context(env_file=_environment_file(env_file)) as settings:
         runner = deployment_runner(
-            settings,
+            settings.database,
             evidence_dir=evidence_dir,
             lock_coordination=lock_coordination,
             acknowledge_previous_run=acknowledge_previous_run,
@@ -218,7 +218,7 @@ def _inspect(
 ) -> None:
     with _operator_errors(), server_settings_context(env_file=_environment_file(env_file)) as settings:
         runner = deployment_runner(
-            settings, evidence_dir=evidence_dir, lock_coordination=lock_coordination, bundle=bundle
+            settings.database, evidence_dir=evidence_dir, lock_coordination=lock_coordination, bundle=bundle
         )
         result = runner.verify() if verify else runner.plan()
         _write_payload(result)

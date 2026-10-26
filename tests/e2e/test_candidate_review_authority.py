@@ -28,6 +28,8 @@ from fastapi import FastAPI
 from fastmcp import Client
 from fastmcp.client.transports import StreamableHttpTransport
 
+from powercontext.builtin.authz import PrincipalRef
+from powercontext.builtin.authz.composition import open_builtin_access_control
 from powercontext.builtin.persistence.sqlite import SQLiteConfig
 from powercontext.builtin.runtime import RuntimeConfig
 from powercontext.server.authentication import (
@@ -36,8 +38,6 @@ from powercontext.server.authentication import (
     AuthenticationResult,
     ProviderReadiness,
 )
-from powercontext.server.authz import PrincipalRef
-from powercontext.server.authz.composition import open_builtin_access_control
 from powercontext.server.factory import create_server_app
 from powercontext.server.settings import AccessControlConfig, McpConfig, MetricsConfig, ServerSettings
 
@@ -103,7 +103,6 @@ async def _review_server(tmp_path: Path) -> AsyncIterator[tuple[FastAPI, str]]:
             ),
             authentication_provider=_Authentication(),
             access_control=access,
-            scheduler_path=tmp_path / "scheduler.db",
         )
         async with app.router.lifespan_context(app), _http_client(app, "admin") as admin:
             scope = await admin.post(

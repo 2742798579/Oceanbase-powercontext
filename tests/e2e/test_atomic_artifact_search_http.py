@@ -26,6 +26,8 @@ import pytest
 
 from powercontext.builtin.artifacts.memory import EmbeddingProfile
 from powercontext.builtin.artifacts.search import AdmissionFloor
+from powercontext.builtin.authz import AccessAction, GroupRef, PrincipalRef, ResourceRef
+from powercontext.builtin.authz.composition import open_builtin_access_control
 from powercontext.builtin.inference import EmbeddingResult
 from powercontext.builtin.persistence.sqlite import SQLiteConfig
 from powercontext.builtin.runtime import BuiltinConfig, open_builtin_contexts
@@ -34,8 +36,6 @@ from powercontext.builtin.runtime.config import RuntimeConfig
 from powercontext.client import PowerContextClient
 from powercontext.http import CreateAccessBindingRequest, CreateScopeRequest, RememberMemoryRequest
 from powercontext.server.authentication import AuthenticationRejectedError, AuthenticationResult, ProviderReadiness
-from powercontext.server.authz import AccessAction, GroupRef, PrincipalRef, ResourceRef
-from powercontext.server.authz.composition import open_builtin_access_control
 from powercontext.server.factory import create_server_app
 from powercontext.server.settings import AccessControlConfig, McpConfig, MetricsConfig, ServerSettings
 
@@ -99,7 +99,6 @@ def test_supported_long_query_preserves_all_terms_in_both_http_searches(
                 metrics=MetricsConfig(enabled=False),
                 mcp=McpConfig(enabled=False),
             ),
-            scheduler_path=migration_backend.directory / "scheduler.db",
             embedding_model=_Embedding(),
         )
         async with (
@@ -168,7 +167,6 @@ def test_composed_atomic_search_returns_full_content_scores_and_trusted_local_id
                 metrics=MetricsConfig(enabled=False),
                 mcp=McpConfig(enabled=False),
             ),
-            scheduler_path=tmp_path / "scheduler.db",
         )
         async with (
             app.router.lifespan_context(app),
@@ -258,7 +256,6 @@ def test_unified_atomic_search_preserves_authenticated_subject_actor_groups_and_
                     metrics=MetricsConfig(enabled=False),
                     mcp=McpConfig(enabled=False),
                 ),
-                scheduler_path=tmp_path / "scheduler.db",
                 access_control=access,
                 authentication_provider=Authentication(),
             )

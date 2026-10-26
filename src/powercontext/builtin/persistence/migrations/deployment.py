@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 from sqlalchemy.engine import make_url
 
@@ -33,9 +33,6 @@ from .mysql import MySQLMigrationRunner
 from .sqlite import SQLiteMigrationRunner
 from .topic_memory_recovery import TopicMemoryRecoveryMigrationRunner
 
-if TYPE_CHECKING:
-    from powercontext.server.settings import ServerSettings
-
 
 def production_bundle() -> MigrationBundle:
     """Load installed resources; readiness is scoped to this acceptance bundle."""
@@ -46,7 +43,7 @@ MigrationRunner = SQLiteMigrationRunner | MySQLMigrationRunner | TopicMemoryReco
 
 
 def deployment_runner(
-    settings: ServerSettings,
+    database: SQLiteConfig | SeekDBConfig | OceanBaseConfig,
     *,
     evidence_dir: Path | None = None,
     lock_coordination: Literal["single-host"] | None = None,
@@ -54,7 +51,6 @@ def deployment_runner(
     bundle: Literal["artifacts", "topic-memory-recovery"] = "artifacts",
 ) -> MigrationRunner:
     """Use the real configured identity without opening a business profile."""
-    database = settings.database
     if bundle == "topic-memory-recovery":
         if not isinstance(database, (SQLiteConfig, SeekDBConfig, OceanBaseConfig)):
             raise MigrationError("unsupported_backend", "The database has no Topic recovery migration adapter.")
