@@ -17,6 +17,8 @@
 from __future__ import annotations
 
 import json
+import math
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from itertools import chain
@@ -106,6 +108,7 @@ class PreparedContextBuild:
     origins: tuple[PreparedContextOrigin, ...]
     omissions: PreparedContextOmissions = PreparedContextOmissions()
     code_origins: tuple[CodeEvidenceRef, ...] = ()
+    fragments: tuple[ContextFragment, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -118,6 +121,16 @@ class MemoryEntryAddress:
 
 
 PreparedContextOrigin = MemoryCitation | ArtifactRef | MemoryEntryAddress | ArtifactAddress
+
+
+@dataclass(frozen=True)
+class ContextFragment:
+    """One literal span of a Memory entry selected for this query."""
+
+    address: MemoryEntryAddress
+    start: int
+    end: int
+    text: str
 
 
 @dataclass(frozen=True)
@@ -235,6 +248,9 @@ class PreparedContextBuilder:
         if sum(len(candidates.hits) for candidates in experience_candidates) > self.experience_candidate_limit:
             raise PreparedContextInvariantError("experience-candidate-limit")
 
+        if request.evidence_selection and request.assembly is None:
+            return self._evidence_selection_result(request=request, memory_candidates=memory_candidates)
+
         content, origins, omissions = self._select_entries(
             request=request,
             current_scope_id=current_scope_id,
@@ -277,6 +293,9 @@ class PreparedContextBuilder:
         counters because both go through :meth:`_select_entries`.
         """
 
+        if request.evidence_selection and request.assembly is None:
+            return self._evidence_selection_result(request=request, memory_candidates=memory_candidates)
+
         content, origins, omissions = self._select_entries(
             request=request,
             current_scope_id=current_scope_id,
@@ -292,6 +311,45 @@ class PreparedContextBuilder:
             truncated_items=omissions.truncated_items,
             dropped_items=omissions.dropped_items,
             unused_bytes=max(0, request.max_bytes - content_bytes),
+        )
+
+    def _evidence_selection_result(
+        self,
+        *,
+        request: PrepareContextRequest,
+        memory_candidates: Sequence[PreparedMemoryCandidates],
+    ) -> PreparedContextBuild:
+        """Deliver literal query-relevant spans instead of whole-entry prefixes."""
+
+        ranked = _rank_fragments(request.query, memory_candidates)
+        if not ranked:
+            return PreparedContextBuild(context=self.empty(), origins=(), fragments=())
+
+        chosen: list[ContextFragment] = []
+        for fragment in ranked:
+            if _selection_bytes((*chosen, fragment)) > request.max_bytes:
+                continue
+            chosen.append(fragment)
+        if not chosen:
+            return PreparedContextBuild(context=self.empty(), origins=(), fragments=())
+
+        content = _render_fragments(chosen)
+        origins: tuple[PreparedContextOrigin, ...] = tuple(
+            MemoryCitation(
+                memory_ref=fragment.address.memory.artifact,
+                entry_id=fragment.address.entry_id,
+                entry_version_id=fragment.address.entry_version_id,
+            )
+            for fragment in chosen
+        )
+        return PreparedContextBuild(
+            context=PreparedContext(
+                status="ready",
+                content=content,
+                content_bytes=len(content.encode("utf-8")),
+            ),
+            origins=origins,
+            fragments=tuple(chosen),
         )
 
     def _select_entries(
@@ -728,3 +786,144 @@ def _truncate_utf8(text: str, byte_budget: int) -> str:
     prefix_budget = byte_budget - len(_ELLIPSIS.encode("utf-8"))
     encoded_prefix = text.encode("utf-8")[:prefix_budget]
     return f"{encoded_prefix.decode('utf-8', errors='ignore')}{_ELLIPSIS}"
+
+
+# ---------------------------------------------------------------------------
+# Query-driven literal fragment selection
+# ---------------------------------------------------------------------------
+
+_TOKEN_PATTERN = re.compile(r"[a-z]+|\d+|[\u3400-\u4dbf\u4e00-\u9fff]")
+_SENTENCE_BREAK = re.compile(r"[.!?\u3002\uff01\uff1f]+[\"')\]]*\s*|\n+")
+_QUERY_STOPWORDS = frozenset({
+    "a", "an", "the", "and", "or", "for", "of", "to", "in", "on", "at", "by", "from", "with",
+    "as", "is", "are", "was", "were", "be", "been", "being", "what", "which", "who", "how",
+    "why", "when", "where", "do", "does", "did", "can", "could", "should", "would", "will",
+    "i", "we", "you", "it", "its", "our", "your", "this", "that", "these", "those", "there",
+    "their", "they", "he", "she", "his", "her", "them", "than", "then", "so", "such", "any",
+    "all", "both", "each", "other", "some", "more", "most", "much", "many", "if", "into",
+    "over", "under", "about", "after", "before", "between", "during", "also", "not", "no",
+    "but", "up", "down", "out", "off", "only", "same", "too", "very", "just", "now", "per",
+})
+
+
+def _query_tokens(query: str) -> tuple[str, ...]:
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for token in _TOKEN_PATTERN.findall(query.casefold()):
+        if token in seen or token in _QUERY_STOPWORDS:
+            continue
+        if len(token) == 1 and token.isascii() and not token.isdigit():
+            continue
+        seen.add(token)
+        ordered.append(token)
+    return tuple(ordered)
+
+
+def _sentence_spans(text: str) -> list[tuple[int, int]]:
+    spans: list[tuple[int, int]] = []
+    start = 0
+    for match in _SENTENCE_BREAK.finditer(text):
+        trimmed = _trim_span(text, start, match.end())
+        if trimmed is not None:
+            spans.append(trimmed)
+        start = match.end()
+    trimmed = _trim_span(text, start, len(text))
+    if trimmed is not None:
+        spans.append(trimmed)
+    return spans
+
+
+def _trim_span(text: str, start: int, end: int) -> tuple[int, int] | None:
+    while start < end and text[start].isspace():
+        start += 1
+    while end > start and text[end - 1].isspace():
+        end -= 1
+    if start >= end:
+        return None
+    return start, end
+
+
+def _rank_fragments(
+    query: str,
+    memory_candidates: Sequence[PreparedMemoryCandidates],
+) -> list[ContextFragment]:
+    """Score every sentence of every candidate and return the best first."""
+
+    entries: list[tuple[MemoryEntryAddress, str]] = []
+    for group in memory_candidates:
+        for hit in group.hits:
+            if not hit.text.strip():
+                continue
+            entries.append((
+                MemoryEntryAddress(
+                    memory=ArtifactAddress(scope_id=group.scope_id, artifact=hit.memory_ref),
+                    entry_id=hit.entry_id,
+                    entry_version_id=hit.entry_version_id,
+                ),
+                hit.text,
+            ))
+    if not entries:
+        return []
+
+    terms = _query_tokens(query)
+    sentences: list[tuple[MemoryEntryAddress, int, int, str, set[str]]] = []
+    for address, text in entries:
+        for start, end in _sentence_spans(text):
+            piece = text[start:end]
+            sentences.append((address, start, end, piece, set(_TOKEN_PATTERN.findall(piece.casefold()))))
+    if not sentences:
+        return []
+
+    total = len(sentences)
+    frequency: dict[str, int] = {term: 0 for term in terms}
+    for _address, _start, _end, _piece, tokens in sentences:
+        for term in terms:
+            if term in tokens:
+                frequency[term] += 1
+
+    phrase = " ".join(query.casefold().split())
+    scored: list[tuple[float, int, ContextFragment]] = []
+    for index, (address, start, end, piece, tokens) in enumerate(sentences):
+        score = 0.0
+        for term in terms:
+            if term in tokens:
+                score += math.log(1.0 + (total + 1.0) / (1.0 + frequency[term]))
+        if score and phrase and phrase in piece.casefold():
+            score += 1.0
+        scored.append((score, index, ContextFragment(address=address, start=start, end=end, text=piece)))
+
+    if not any(item[0] > 0 for item in scored):
+        # Nothing matches lexically; deliver the leading span of the best candidate.
+        address, text = entries[0]
+        spans = _sentence_spans(text)
+        if not spans:
+            return []
+        start, end = spans[0]
+        return [ContextFragment(address=address, start=start, end=end, text=text[start:end])]
+
+    scored.sort(key=lambda item: (-item[0], item[1]))
+    return [fragment for score, _index, fragment in scored if score > 0]
+
+
+def _render_fragments(fragments: Sequence[ContextFragment]) -> str:
+    items = [
+        {
+            "citation": {
+                "scope_id": fragment.address.memory.scope_id,
+                "memory_ref": fragment.address.memory.artifact.model_dump(mode="json"),
+                "entry_id": fragment.address.entry_id,
+                "entry_version_id": fragment.address.entry_version_id,
+            },
+            "content": fragment.text,
+            "start": fragment.start,
+            "end": fragment.end,
+        }
+        for fragment in fragments
+    ]
+    envelope = {"trust": "untrusted_history", "items": items}
+    encoded = json.dumps(envelope, ensure_ascii=False, separators=(",", ":"))
+    return "\n\n".join((TRUST_POLICY, f"{_BEGIN_MARKER}\n{encoded}\n{_END_MARKER}"))
+
+
+def _selection_bytes(fragments: Sequence[ContextFragment]) -> int:
+    return len(_render_fragments(fragments).encode("utf-8"))
