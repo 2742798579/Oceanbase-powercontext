@@ -489,6 +489,7 @@ class ScopedSourceApplication:
                             span.set_attributes({_MEMORY_CAPTURE_SOURCE_COUNT: 1})
             except BaseValueConflictError as error:
                 raise SourceConflictError("identity", error.identity) from None
+            await self._runtime._maybe_request_by_count(self.scope_id)
             return SourceReceipt(
                 source_ref=SourceRef(source_type=record.source_type, source_id=record.source_id),
                 sequence=record.position,
@@ -505,6 +506,7 @@ class ScopedSourceApplication:
                 )
                 if span is not None:
                     span.set_attributes({_MEMORY_CAPTURE_SOURCE_COUNT: 1})
+            await self._runtime._maybe_request_by_count(self.scope_id)
             return SourceReceipt(source_ref=context.sources.catalog.as_ref(source), sequence=sequence)
 
 
@@ -564,7 +566,11 @@ class ScopedRecordApplication:
         /,
     ) -> ArtifactCreated:
         async with self._runtime._scope_operation(self.scope_id), self._runtime._locked(self.scope_id):
-            return await self._runtime._records().create_artifact(self.scope_id, family, write)
+            created = await self._runtime._records().create_artifact(self.scope_id, family, write)
+        # An Artifact appends a lineage journal entry too, so it can be the entry
+        # that reaches the configured Source count threshold.
+        await self._runtime._maybe_request_by_count(self.scope_id)
+        return created
 
     async def get_artifact(self, family: str, artifact_id: str, /) -> ArtifactRecord:
         async with self._runtime._scope_operation(self.scope_id):
@@ -2690,6 +2696,7 @@ class ScopedTopicMemoryApplication:
                     query_embedding,
                     embedding_timeout_seconds,
                 )
+        result = await self._runtime._filter_hidden_topics(self.scope_id, result)
         observer = self._runtime._topic_memory_search_observer
         if observer is not None:
             try:
@@ -3030,6 +3037,8 @@ class BuiltinRuntime:
         topic_memory_embedding_model: EmbeddingModel | None = None,
         topic_memory_processing_available: bool = False,
         topic_memory_search_observer: TopicMemorySearchObserver | None = None,
+        source_count_probe: Callable[[str], Awaitable[tuple[str, ...]]] | None = None,
+        lifecycle_database: Any | None = None,
         external_skill_registry: ExternalSkillRegistryFactory | None = None,
         external_skill_importer: ExternalSkillImporter | None = None,
         skill_publication_service: SkillPublicationServiceFactory | None = None,
@@ -3086,6 +3095,8 @@ class BuiltinRuntime:
         self._topic_memory_embedding_model = topic_memory_embedding_model
         self._topic_memory_processing_available = topic_memory_processing_available
         self._topic_memory_search_observer = topic_memory_search_observer
+        self._source_count_probe = source_count_probe
+        self._lifecycle_database = lifecycle_database
         self._external_skill_registry = external_skill_registry
         self._external_skill_importer = external_skill_importer
         self._skill_publication_service = skill_publication_service
@@ -3151,6 +3162,43 @@ class BuiltinRuntime:
 
     async def __aexit__(self, exc_type: object, exc_value: object, traceback: object) -> None:
         await self.close()
+
+    @property
+    def lifecycle(self) -> Any:
+        """Expose the Source lifecycle service of one scope."""
+
+        from powercontext.builtin.runtime.source_lifecycle import SourceLifecycleApplication
+
+        return SourceLifecycleApplication(self)
+
+    async def _filter_hidden_topics(self, scope_id: str, result: Any, /) -> Any:
+        """Drop Topic hits this scope's lifecycle graph currently withholds."""
+
+        if self._lifecycle_database is None:
+            return result
+        from powercontext.builtin.runtime.source_lifecycle import SourceLifecycleApplication
+
+        hidden = await SourceLifecycleApplication(self).for_scope(scope_id).hidden_topics()
+        if not hidden:
+            return result
+        kept = tuple(hit for hit in result.hits if hit.artifact_ref.artifact_id not in hidden)
+        if len(kept) == len(result.hits):
+            return result
+        return result.model_copy(update={"hits": kept})
+
+    async def _maybe_request_by_count(self, scope_id: str, /) -> None:
+        """Admit processing now when enough new Source entries are pending."""
+
+        probe = self._source_count_probe
+        if probe is None:
+            return
+        admitted = await probe(scope_id)
+        supervisor = self.artifact_processing_supervisor
+        if supervisor is None or not admitted:
+            return
+        for binding_name in admitted:
+            supervisor.wake(binding_name)
+
 
     async def capabilities(self) -> RuntimeCapabilities:
         async with self._operation():
