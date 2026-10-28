@@ -140,7 +140,11 @@ from powercontext.builtin.runtime.decision_model import (
 from powercontext.builtin.runtime.family_processing import FAMILY_BINDINGS, FamilyWorkerSpec, run_family_worker
 from powercontext.builtin.runtime.memory_write_gate import build_memory_write_gate
 from powercontext.builtin.runtime.models import MemorySearchMode, RuntimeCapabilities
-from powercontext.builtin.runtime.processing_discovery import SourceProcessingPendingProvider, enabled_profile_scopes
+from powercontext.builtin.runtime.processing_discovery import (
+    SourceCountTrigger,
+    SourceProcessingPendingProvider,
+    enabled_profile_scopes,
+)
 from powercontext.builtin.runtime.processing_registry import (
     canonical_processing_manifest,
     dream_operations,
@@ -632,6 +636,15 @@ async def open_builtin_runtime(
                 topic_memory_browse=contexts.browse_topic_memories,
                 topic_memory_flush=contexts.request_topic_memory_flush,
                 topic_memory_embedding_model=configured_embedding,
+                lifecycle_database=contexts.database,
+                source_count_probe=SourceCountTrigger(
+                    contexts.database,
+                    {
+                        b.binding_name: b.source_count_threshold
+                        for b in processing_bindings
+                        if b.source_count_threshold is not None
+                    },
+                ),
                 topic_memory_processing_available=topic_memory_processing_available,
                 topic_memory_search_observer=topic_memory_search_observer,
                 external_skill_registry=contexts.external_skills if contexts.external_skill_registry else None,
@@ -786,6 +799,7 @@ def _artifact_processing_bindings(  # noqa: C901 - validate and assemble one reg
                 pending_provider=None
                 if family == "skill"
                 else SourceProcessingPendingProvider(contexts.database, binding, family),
+                source_count_threshold=getattr(config.runtime, f"{prefix}_source_count_threshold", None),
                 automatic_scope_filter=enabled_profile_scopes if family == "profile" else None,
             )
         )
