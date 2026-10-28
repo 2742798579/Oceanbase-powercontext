@@ -114,6 +114,9 @@ class ArtifactProcessingBinding:
     timezone: str = "Asia/Shanghai"
     config_prefix: str | None = None
     pending_provider: ArtifactProcessingPendingProvider | None = None
+    # Start one invocation once this many new journal entries are pending for a
+    # scope. ``None`` keeps time-only admission; a set value is an OR with it.
+    source_count_threshold: int | None = None
     # Only automatic admission is filtered; already accepted requests retain
     # their own Worker authorization and domain completion semantics.
     automatic_scope_filter: Callable[[AsyncConnection, tuple[str, ...]], Awaitable[frozenset[str]]] | None = None
@@ -129,6 +132,10 @@ class ArtifactProcessingBinding:
         object.__setattr__(self, "config_prefix", prefix)
         if type(self.max_workers) is not int or self.max_workers < 1:
             raise ValueError("max_workers must be a positive integer")  # noqa: TRY003
+        if self.source_count_threshold is not None and (
+            type(self.source_count_threshold) is not int or self.source_count_threshold < 1
+        ):
+            raise ValueError("source_count_threshold must be a positive integer")  # noqa: TRY003
         if self.worker_timeout_seconds <= 0:
             raise ValueError("worker_timeout_seconds must be positive")  # noqa: TRY003
         if self.automatic_processing_interval is not None:
