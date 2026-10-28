@@ -16,6 +16,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -24,6 +26,46 @@ from powercontext.builtin.persistence.database import AsyncDatabase
 from powercontext.builtin.persistence.processing_intents import ArtifactProcessingIntentRepository
 from powercontext.builtin.persistence.supervision import ArtifactProcessingFence, ArtifactProcessingLeaseRepository
 from powercontext.builtin.persistence.tables import PROFILE_POLICIES_TABLE, SOURCE_JOURNAL_HEADS_TABLE
+
+
+class SourceCountTrigger:
+    """Admit a scope as soon as enough new journal entries are waiting.
+
+    A capture only raises the legacy pending row; it neither dirties an intent
+    nor wakes the Supervisor. This probe closes that gap: it compares the scope's
+    journal head with the processor's committed cursor and, once the configured
+    threshold is met, raises the same invocation an explicit flush would. The
+    count is taken at capture time, so a processed window that leaves fewer
+    entries than the threshold simply waits for more input.
+    """
+
+    def __init__(
+        self,
+        database: AsyncDatabase,
+        thresholds: Mapping[str, int],
+    ) -> None:
+        self._database = database
+        self._thresholds = dict(thresholds)
+
+    async def __call__(self, scope_id: str, /) -> tuple[str, ...]:
+        if not self._thresholds:
+            return ()
+        heads = SOURCE_JOURNAL_HEADS_TABLE
+        admitted: list[str] = []
+        async with self._database.transaction() as connection:
+            high = await connection.scalar(select(heads.c.position).where(heads.c.scope_id == scope_id))
+            if high is None:
+                return ()
+            cursors = SourceCursorRepository()
+            intents = ArtifactProcessingIntentRepository()
+            for binding_name, threshold in self._thresholds.items():
+                cursor = await cursors.load(connection, scope_id, binding_name)
+                consumed = 0 if cursor is None else cursor.cursor.sequence
+                if int(high) - consumed < threshold:
+                    continue
+                await intents.request(connection, scope_id, binding_name)
+                admitted.append(binding_name)
+        return tuple(admitted)
 
 
 async def enabled_profile_scopes(connection: AsyncConnection, scope_ids: tuple[str, ...]) -> frozenset[str]:
