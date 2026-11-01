@@ -205,12 +205,20 @@ class ScopedSourceLifecycle:
             if event.sequence == node.sequence:
                 if event.available != node.available:
                     raise SourceLifecycleError("event sequence was reused with a different state")  # noqa: TRY003
-                return _active_ids(nodes)
-            previous = {name: item.available for name, item in nodes.items()}
-            node.sequence = event.sequence
-            node.available = event.available
-            _propagate(nodes)
-            await self._save(nodes)
+                # A replay must not add a Memory revision, but it must still finish
+                # a propagation that was interrupted after the graph was stored.
+                repair = {name: not item.available for name, item in nodes.items()}
+                replayed = True
+            else:
+                replayed = False
+            if replayed:
+                previous = repair
+            else:
+                previous = {name: item.available for name, item in nodes.items()}
+                node.sequence = event.sequence
+                node.available = event.available
+                _propagate(nodes)
+                await self._save(nodes)
         await self._sync_native(nodes, previous)
         return _active_ids(nodes)
 
@@ -241,7 +249,34 @@ class ScopedSourceLifecycle:
             if node.kind == "topic" and not node.available
         )
 
+    async def _require_readable(self, node: _Node) -> None:
+        """Every registered reference must already exist and be readable."""
+
+        if node.kind == "source":
+            ref = SourceRef.model_validate(node.payload["source_ref"])
+            try:
+                await self._runtime.records.for_scope(self.scope_id).get_source(ref.source_type, ref.source_id)
+            except Exception as error:  # noqa: BLE001 - any read failure means "not readable"
+                raise SourceLifecycleError(f"source {ref.source_id!r} is not readable") from error
+        elif node.kind == "memory":
+            citation = MemoryCitation.model_validate(node.payload["citation"])
+            try:
+                await self._runtime.memory.for_scope(self.scope_id).get(
+                    _memory_entry_request(citation)
+                )
+            except Exception as error:  # noqa: BLE001
+                raise SourceLifecycleError("memory citation is not readable") from error
+        else:
+            artifact = ArtifactRef.model_validate(node.payload["artifact"])
+            try:
+                await self._runtime.records.for_scope(self.scope_id).get_artifact_revision(
+                    artifact.family, artifact.artifact_id, artifact.revision
+                )
+            except Exception as error:  # noqa: BLE001
+                raise SourceLifecycleError("topic artifact is not readable") from error
+
     async def _register(self, node: _Node) -> None:
+        await self._require_readable(node)
         async with self._runtime._scope_operation(self.scope_id), self._runtime._locked(self.scope_id):
             nodes = await self._load()
             existing = nodes.get(node.node_id)
@@ -291,7 +326,10 @@ class ScopedSourceLifecycle:
             return
         async with self._runtime._context(self.scope_id) as context:
             service = context.artifacts.memory
-            current = await service.head(context.artifacts.memory_artifact_id)
+            try:
+                current = await service.head(context.artifacts.memory_artifact_id)
+            except Exception:  # noqa: BLE001 - a scope without Memory needs no state change
+                return
             if current is None:
                 return
             versions = {entry.entry_id: entry for entry in await service.entries(current)}
@@ -328,6 +366,12 @@ class SourceLifecycleApplication:
 
     def for_scope(self, scope_id: str, /) -> ScopedSourceLifecycle:
         return ScopedSourceLifecycle(self._runtime, scope_id)
+
+
+def _memory_entry_request(citation: MemoryCitation) -> Any:
+    from powercontext.builtin.runtime.models import GetMemoryEntryRequest
+
+    return GetMemoryEntryRequest(citation=citation)
 
 
 def _derive(nodes: dict[str, _Node], node: _Node) -> bool:
