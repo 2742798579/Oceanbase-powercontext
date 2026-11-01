@@ -420,6 +420,12 @@ def _query_variants(question: str) -> tuple[str, ...]:
         variants.append(" ".join((term, *aliases)))
         groups += 1
 
+    # A single evidence term is the lowest admissible query there is: the lexical
+    # floor then asks for one match instead of a share of a long question, so a
+    # page that states the answer in the filing's own words still enters the pool.
+    for term in sorted(_distinctive_terms(terms), key=len, reverse=True)[:3]:
+        variants.append(term)
+
     unique: list[str] = []
     seen: set[str] = set()
     for variant in variants:
