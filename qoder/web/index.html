@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>知返 KnowReturn · 学习资料混合检索与复习教练</title>
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">知</div>
+    <div>
+      <h1>知返 <span>KnowReturn</span></h1>
+      <p class="tagline">把散落的笔记变成能找得到、会记得住的知识</p>
+    </div>
+  </div>
+  <div class="pills" id="statusPills">
+    <span class="pill pill-muted" id="pillSeekdb">seekdb 检测中…</span>
+    <span class="pill pill-muted" id="pillPc">PowerContext 检测中…</span>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-view="search">混合检索</button>
+  <button class="tab" data-view="coach">复习教练</button>
+  <button class="tab" data-view="library">资料库</button>
+  <button class="tab" data-view="profile">学习档案</button>
+</nav>
+
+<main>
+  <!-- 检索 -->
+  <section class="view active" id="view-search">
+    <div class="panel">
+      <div class="searchbar">
+        <input id="queryInput" type="text" placeholder="问一句你笔记里的东西，例如：为什么 B+ 树插入会变慢" />
+        <select id="courseFilter"><option value="">全部科目</option></select>
+        <button id="searchBtn" class="btn btn-primary">检索</button>
+      </div>
+      <div class="examples">
+        试试：
+        <button class="chip" data-q="为什么 B+ 树插入会变慢">为什么 B+ 树插入会变慢</button>
+        <button class="chip" data-q="地址翻译为什么要多级页表">地址翻译为什么要多级页表</button>
+        <button class="chip" data-q="验证集损失上升说明什么">验证集损失上升说明什么</button>
+      </div>
+      <div id="memoryBanner" class="memory-banner hidden"></div>
+    </div>
+    <div id="searchResults"></div>
+  </section>
+
+  <!-- 复习教练 -->
+  <section class="view" id="view-coach">
+    <div class="panel coach-head">
+      <div>
+        <h2>今日复习队列</h2>
+        <p class="muted" id="coachSub">队列长度与优先科目来自 PowerContext 记忆</p>
+      </div>
+      <div class="coach-actions">
+        <button id="reloadQueue" class="btn">重新排队</button>
+      </div>
+    </div>
+    <div class="coach-grid">
+      <div class="panel card-area" id="cardArea">
+        <p class="muted">正在生成卡片…</p>
+      </div>
+      <div class="panel side" id="coachSide">
+        <h3>本次队列</h3>
+        <div id="queueList" class="queue-list"></div>
+        <h3 style="margin-top:18px">薄弱主题（seekdb 聚合）</h3>
+        <div id="weakList" class="weak-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 资料库 -->
+  <section class="view" id="view-library">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>已导入资料</h2>
+        <button id="seedBtn" class="btn">重新导入示例资料</button>
+      </div>
+      <div id="docList" class="doc-list"></div>
+    </div>
+    <div class="panel">
+      <h2>导入新资料</h2>
+      <div class="form-row">
+        <input id="ingTitle" placeholder="标题，例如：编译原理-语法分析" />
+        <input id="ingCourse" placeholder="科目，例如：编译原理" />
+        <input id="ingTags" placeholder="标签，可选" />
+      </div>
+      <textarea id="ingText" rows="7" placeholder="粘贴 Markdown 或纯文本。用 ## 二级标题分段，每段会成为一个可检索、可复习的知识块。"></textarea>
+      <div class="form-foot">
+        <button id="ingestBtn" class="btn btn-primary">导入到 seekdb</button>
+        <span class="muted" id="ingestMsg"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 学习档案 -->
+  <section class="view" id="view-profile">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>PowerContext 记忆原文</h2>
+        <button id="refreshProfile" class="btn">刷新召回</button>
+      </div>
+      <p class="muted">下面是 <code>POST /v1/context/prepare</code> 针对「我的学习进度、薄弱点和复习偏好」返回的上下文，它就是跨会话复用的全部依据。</p>
+      <pre id="memoryRaw" class="code-block">加载中…</pre>
+    </div>
+    <div class="panel">
+      <h2>设置学习偏好</h2>
+      <p class="muted">保存后写入 PowerContext，下一次检索排序和复习排队会自动用上。</p>
+      <div class="form-row">
+        <input id="prefCourse" placeholder="优先复习科目，例如：数据库" />
+        <input id="prefLimit" type="number" placeholder="每日卡片上限，例如：8" />
+        <button id="prefBtn" class="btn btn-primary">写入记忆</button>
+      </div>
+      <p class="muted" id="prefMsg"></p>
+    </div>
+    <div class="panel">
+      <h2>薄弱主题明细</h2>
+      <div id="profileWeak"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <span>seekdb 负责「找得到」：向量 + 全文 + 结构化条件一条 SQL 完成混合检索</span>
+  <span>PowerContext 负责「记得住」：偏好与薄弱点跨会话复用</span>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
