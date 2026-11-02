@@ -1,0 +1,95 @@
+{
+  "comment": "预置旧账：一批「已经当过的谎言」，用于让新玩家第一次进店就可能撞当，也让混合检索有料可查。",
+  "lies": [
+    {
+      "player_id": "seed-wang",
+      "player_name": "王跛脚货郎",
+      "lie": "我家的猫会背唐诗三百首，还会挑押韵的背",
+      "quote": 268,
+      "verdict": "照价入库",
+      "tag": "动物",
+      "ts": 1759900000
+    },
+    {
+      "player_id": "seed-li",
+      "player_name": "李青衫书生",
+      "lie": "上个月我在楼下便利店买到了三千年前的月饼",
+      "quote": 312,
+      "verdict": "照价入库",
+      "tag": "杂项",
+      "ts": 1759910000
+    },
+    {
+      "player_id": "seed-zhao",
+      "player_name": "赵缺牙更夫",
+      "lie": "我敲更的时候把月亮敲下来过，后来自己爬梯子挂回去了",
+      "quote": 405,
+      "verdict": "照价入库",
+      "tag": "超自然",
+      "ts": 1759920000
+    },
+    {
+      "player_id": "seed-chen",
+      "player_name": "陈木匠",
+      "lie": "我打的这张桌子会自己记账，比账房先生还准",
+      "quote": 233,
+      "verdict": "照价入库",
+      "tag": "能力",
+      "ts": 1759930000
+    },
+    {
+      "player_id": "seed-sun",
+      "player_name": "孙游医",
+      "lie": "我给一条街的井都接过骨，现在它们会互相打招呼",
+      "quote": 287,
+      "verdict": "照价入库",
+      "tag": "能力",
+      "ts": 1759940000
+    },
+    {
+      "player_id": "seed-zhou",
+      "player_name": "周账房",
+      "lie": "我算账从不用算盘，全靠数自己的心跳",
+      "quote": 198,
+      "verdict": "照价入库",
+      "tag": "能力",
+      "ts": 1759950000
+    },
+    {
+      "player_id": "seed-wu",
+      "player_name": "吴画师",
+      "lie": "我画的人像半夜会从纸上下来喝水",
+      "quote": 356,
+      "verdict": "照价入库",
+      "tag": "超自然",
+      "ts": 1759960000
+    },
+    {
+      "player_id": "seed-zheng",
+      "player_name": "郑镖师",
+      "lie": "我押的这趟镖是给皇帝送一封没写完的信",
+      "quote": 274,
+      "verdict": "照价入库",
+      "tag": "身份",
+      "ts": 1759970000
+    },
+    {
+      "player_id": "seed-feng",
+      "player_name": "冯说书人",
+      "lie": "我说的这段书，昨天在城东自己讲完了一遍",
+      "quote": 241,
+      "verdict": "照价入库",
+      "tag": "能力",
+      "ts": 1759980000
+    },
+    {
+      "player_id": "seed-chu",
+      "player_name": "褚戏子",
+      "lie": "我唱戏的时候，台下的椅子会跟着一起哭",
+      "quote": 319,
+      "verdict": "照价入库",
+      "tag": "能力",
+      "ts": 1759990000
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.6
+pyseekdb>=1.4.0
+# 嵌入式 seekdb 内核。pyseekdb 的依赖声明只在 linux/macos 生效，
+# Windows 上必须显式安装 1.4.0.post2 及以上版本（该版本起才提供 win_amd64 wheel）。
+pylibseekdb>=1.4.0.post2
+httpx>=0.27
