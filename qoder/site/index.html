@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>知返 KnowReturn · 学习资料混合检索与复习教练</title>
+<meta name="description" content="把散落的笔记变成找得到、也记得住的知识。基于 seekdb 混合检索与 PowerContext 长期记忆的学习提效工具。" />
+<style>
+  :root {
+    --bg: #0a0e13;
+    --panel: #10161f;
+    --panel2: #151d29;
+    --line: #22303f;
+    --text: #e8eef7;
+    --muted: #8a9bb0;
+    --accent: #3ddc97;
+    --accent2: #4aa8ff;
+    --warn: #ffb454;
+    --maxw: 1120px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+    font-size: 16px; line-height: 1.75; -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: #0c1420; border: 1px solid var(--line); border-radius: 5px;
+    padding: 1px 6px; font-size: 13.5px; color: #8fd4ff;
+    font-family: "JetBrains Mono", Consolas, monospace;
+  }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
+
+  /* nav */
+  nav {
+    position: sticky; top: 0; z-index: 20;
+    backdrop-filter: blur(14px); background: rgba(10,14,19,.82);
+    border-bottom: 1px solid var(--line);
+  }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 62px; }
+  .brand { display: flex; align-items: center; gap: 11px; font-weight: 700; letter-spacing: .01em; }
+  .logo {
+    width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center;
+    background: linear-gradient(140deg, #3ddc97, #4aa8ff); color: #04120d;
+    font-size: 17px; font-weight: 800;
+  }
+  .navlinks { display: flex; gap: 22px; font-size: 14px; }
+  .navlinks a { color: var(--muted); }
+  .navlinks a:hover { color: var(--text); text-decoration: none; }
+  @media (max-width: 760px) { .navlinks { display: none; } }
+
+  /* hero */
+  header.hero { padding: 78px 0 54px; position: relative; overflow: hidden; }
+  header.hero::before {
+    content: ""; position: absolute; inset: -40% 20% auto -10%; height: 620px;
+    background: radial-gradient(closest-side, rgba(61,220,151,.16), transparent 70%);
+    pointer-events: none;
+  }
+  .kicker {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12.5px; color: var(--accent); letter-spacing: .06em;
+    border: 1px solid rgba(61,220,151,.32); background: rgba(61,220,151,.07);
+    padding: 5px 12px; border-radius: 999px; margin-bottom: 22px;
+  }
+  h1 { font-size: clamp(34px, 5.4vw, 58px); line-height: 1.15; margin: 0 0 18px; letter-spacing: -.02em; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .lede { font-size: 18px; color: #b9c8da; max-width: 760px; margin: 0 0 30px; }
+  .cta { display: flex; gap: 14px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 20px; border-radius: 10px; font-size: 15px; font-weight: 600;
+    border: 1px solid var(--line); background: var(--panel2); color: var(--text);
+  }
+  .btn:hover { text-decoration: none; border-color: #34506b; }
+  .btn-primary { background: linear-gradient(140deg, #34c98a, #2a9fd8); border: none; color: #04120d; }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .hero-shot {
+    margin-top: 44px; border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+    box-shadow: 0 30px 80px -30px rgba(0,0,0,.85);
+  }
+  .hero-shot img { display: block; width: 100%; }
+
+  /* sections */
+  section { padding: 62px 0; border-top: 1px solid #16202b; }
+  .sec-head { margin-bottom: 34px; }
+  .sec-head .idx { font-size: 12.5px; color: var(--accent); letter-spacing: .14em; }
+  .sec-head h2 { font-size: clamp(24px, 3.2vw, 32px); margin: 8px 0 10px; letter-spacing: -.01em; }
+  .sec-head p { color: var(--muted); margin: 0; max-width: 760px; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .grid4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  @media (max-width: 820px) { .grid2, .grid4 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 22px 24px;
+  }
+  .card h3 { margin: 0 0 8px; font-size: 17px; }
+  .card p { margin: 0; color: #a9bacd; font-size: 14.5px; }
+  .card .tag {
+    display: inline-block; font-size: 11.5px; color: var(--muted);
+    border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; margin-bottom: 12px;
+  }
+  .card.pain { border-left: 3px solid #ff7b72; }
+  .card.fix { border-left: 3px solid var(--accent); }
+
+  /* 架构 */
+  .arch { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 820px) { .arch { grid-template-columns: 1fr; } }
+  .layer {
+    background: linear-gradient(180deg, #111a24, #0d141c);
+    border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px;
+  }
+  .layer .name { font-size: 12px; letter-spacing: .1em; color: var(--muted); }
+  .layer .title { font-size: 19px; font-weight: 700; margin: 6px 0 4px; }
+  .layer .role { font-size: 13px; color: var(--accent); margin-bottom: 14px; }
+  .layer ul { margin: 0; padding-left: 18px; color: #a9bacd; font-size: 14px; }
+  .layer li { margin-bottom: 7px; }
+  .flow {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    flex-wrap: wrap; margin: 22px 0 0; font-size: 13.5px; color: var(--muted);
+  }
+  .flow span.node {
+    border: 1px solid var(--line); background: var(--panel2); border-radius: 999px;
+    padding: 6px 14px; color: #c7d6e6;
+  }
+  .flow .arrow { color: var(--accent); }
+
+  /* 验证 */
+  pre.term {
+    background: #070c12; border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 20px; overflow-x: auto; font-size: 13px; line-height: 1.75;
+    color: #b9cbdd; font-family: "JetBrains Mono", Consolas, monospace;
+    margin: 0;
+  }
+  pre.term .c { color: #5f7386; }
+  pre.term .ok { color: var(--accent); }
+  pre.term .q { color: var(--warn); }
+
+  /* 截图墙 */
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 820px) { .shots { grid-template-columns: 1fr; } }
+  figure.shot { margin: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); }
+  figure.shot img { display: block; width: 100%; }
+  figure.shot figcaption { font-size: 13px; color: var(--muted); padding: 10px 14px; border-top: 1px solid var(--line); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; }
+  td.num { font-variant-numeric: tabular-nums; color: var(--accent); }
+
+  .note {
+    border: 1px dashed #2b3f52; border-radius: 12px; padding: 16px 18px;
+    color: var(--muted); font-size: 14px; background: #0c131b;
+  }
+
+  footer { padding: 46px 0 60px; border-top: 1px solid #16202b; color: var(--muted); font-size: 13.5px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="brand"><div class="logo">知</div>知返 KnowReturn</div>
+    <div class="navlinks">
+      <a href="#problem">问题</a>
+      <a href="#feature">功能</a>
+      <a href="#arch">技术</a>
+      <a href="#verify">验证</a>
+      <a href="#shots">截图</a>
+      <a href="#effect">效果</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">Qoder × OceanBase 2026 · Qoder 赛题</div>
+    <h1>把散落的笔记，变成<br /><em>找得到</em>也<em>记得住</em>的知识</h1>
+    <p class="lede">
+      知返是一个面向备考与科研的学习资料工具：用 seekdb 的向量 + 全文 + 标量混合检索，
+      按意思找到你记不清原话的那一段；用 PowerContext 记住你在哪一章卡住，
+      下一次检索和复习排队会自动用上这些记忆。
+    </p>
+    <div class="cta">
+      <a class="btn btn-primary" href="#verify">看验证步骤</a>
+      <a class="btn" href="https://github.com/oceanbase/powercontext/tree/2026-competition-ecosystem/qoder">代码仓库</a>
+      <a class="btn" href="#shots">看界面截图</a>
+    </div>
+    <div class="hero-shot">
+      <img src="shots/01-search.png" alt="知返混合检索界面" />
+    </div>
+  </div>
+</header>
+
+<section id="problem">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="idx">01 / 问题</div>
+      <h2>两个每个人都遇到、但一直没人好好解决的重复劳动</h2>
+      <p>不是「资料不够」，而是资料存在了却用不上。这两件事每次都吃掉半小时到两小时。</p>
+    </div>
+    <div class="grid2">
+      <div class="card pain">
+        <div class="tag">痛点一</div>
+        <h3>想找一段话，却想不起当时怎么写的</h3>
+        <p>
+          用编辑器全文搜「变慢」搜不到，因为原文写的是「拖慢」；搜「B+」又只能搜到讲结构的章节。
+          关键词检索要求你和当时的自己用词完全一致，而人做不到。
+        </p>
+      </div>
+      <div class="card pain">
+        <div class="tag">痛点二</div>
+        <h3>复习工具不记得你，每次都从零开始</h3>
+        <p>
+          Anki 这类工具要手工制卡，而且不知道你上次在哪一章卡住。
+          换台设备、换个会话，之前的进度就丢了，薄弱点要重新发现一遍。
+        </p>
+      </div>
+      <div class="card fix">
+        <div class="tag">解法一</div>
+        <h3>按意思找 + 按字面找，同时生效</h3>
+        <p>
+          资料进 seekdb 后，一次检索同时跑向量召回和 ik 全文召回，用 RRF 融合。
+          语义相近的段落不会因为用词不同被漏掉，精确术语又能排到最前。
+        </p>
+      </div>
+      <div class="card fix">
+        <div class="tag">解法二</div>
+        <h3>把「你是谁」存在会话之外</h3>
+        <p>
+          偏好、薄弱主题、复习进度写进 PowerContext，跨会话、跨设备都在。
+          它们不是摆设：直接改变检索排序权重和复习队列长度。
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="feature">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="idx">02 / 核心功能</div>
+      <h2>四个功能，构成一条闭环</h2>
+      <p>导入 → 检索 → 复习 → 记忆回写 → 下次检索更准。每一环都能在界面上看到证据。</p>
+    </div>
+    <div class="grid4">
+      <div class="card">
+        <h3>① 资料导入与切块</h3>
+        <p>粘贴 Markdown 或批量导入目录。按二级标题分段、按空行切块，每块 60~400 字，既能被向量表达，也能直接当一张复习卡片的正面。</p>
+      </div>
+      <div class="card">
+        <h3>② 混合检索，带出处</h3>
+        <p>向量 Top20 + 全文 Top20 → RRF 融合。每条结果都标明向量排名、全文排名、记忆加权和最终得分，点开还能看到真正执行的 SQL。</p>
+      </div>
+      <div class="card">
+        <h3>③ 复习教练</h3>
+        <p>把知识块变成完形填空卡片：挖掉主题词让你回忆。队列长度和优先科目由记忆决定，不是写死的常量。</p>
+      </div>
+      <div class="card">
+        <h3>④ 记忆回写与复用</h3>
+        <p>标「还不熟」就写一条薄弱主题进 PowerContext；下次检索命中该主题的结果会被加权。改偏好是替换不是追加，旧条目会被 retire。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="arch">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="idx">03 / 技术架构</div>
+      <h2>seekdb 管「事实与检索」，PowerContext 管「这个学习者是谁」</h2>
+      <p>两个组件都不是装上去摆着看的，各自有明确的分工和可核对的证据。</p>
+    </div>
+    <div class="arch">
+      <div class="layer">
+        <div class="name">STORAGE &amp; RETRIEVAL</div>
+        <div class="title">seekdb（嵌入式）</div>
+        <div class="role">负责：找得到</div>
+        <ul>
+          <li>一张 <code>chunk</code> 表同时承载正文、512 维向量、ik 全文索引和结构化字段</li>
+          <li>向量召回走 HNSW（<code>ORDER BY ... APPROXIMATE</code>），全文召回走 <code>MATCH ... AGAINST</code></li>
+          <li>向量 + 全文 + 标量条件可以压在同一条 SQL、同一个执行计划里</li>
+          <li><code>review_log</code> 表记录每次评分，薄弱主题是对它做 SQL 聚合</li>
+          <li>索引异步构建，代码里做了精确扫描兜底，导入后立刻可搜</li>
+        </ul>
+      </div>
+      <div class="layer">
+        <div class="name">LONG-TERM MEMORY</div>
+        <div class="title">PowerContext</div>
+        <div class="role">负责：记得住</div>
+        <ul>
+          <li>存三类记忆：学习偏好（<code>优先复习科目=…；每日卡片上限=…</code>）、薄弱主题、复习进度</li>
+          <li><code>POST /v1/memory/remember</code> 写入，<code>/v1/context/prepare</code> 按字节预算召回</li>
+          <li>召回文本被解析成三个参数，分别改变排序权重、队列长度、薄弱点加权</li>
+          <li>改偏好时先 <code>retire</code> 旧条目再写新的，避免新旧冲突</li>
+          <li>写之前先读一次，同一薄弱点不重复写</li>
+        </ul>
+      </div>
+    </div>
+    <div class="flow">
+      <span class="node">资料导入</span><span class="arrow">→</span>
+      <span class="node">seekdb 混合检索</span><span class="arrow">→</span>
+      <span class="node">复习卡片</span><span class="arrow">→</span>
+      <span class="node">PowerContext 记忆</span><span class="arrow">→</span>
+      <span class="node">下次检索更准</span>
+    </div>
+  </div>
+</section>
+
+<section id="verify">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="idx">04 / 怎么验证</div>
+      <h2>三步，三分钟，全部可复现</h2>
+      <p>完整步骤见仓库里的 <code>VERIFY.md</code>，也可以直接跑验证脚本。</p>
+    </div>
+    <pre class="term"><span class="c"># 1. 装依赖 + 下载向量模型（约 95MB，只需一次）</span>
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe scripts\fetch_model.py
+
+<span class="c"># 2. 启动记忆层（另一个终端，保持不关）</span>
+powercontext server run          <span class="c"># http://127.0.0.1:8000</span>
+
+<span class="c"># 3. 启动应用</span>
+.venv\Scripts\python.exe run.py  <span class="c"># http://127.0.0.1:8080</span>
+
+<span class="c"># 4. 端到端验证</span>
+.venv\Scripts\python.exe scripts\verify.py
+
+<span class="ok">[PASS]</span> 1. seekdb 嵌入式实例 + 建表
+<span class="ok">[PASS]</span> 2. 导入示例资料
+<span class="ok">[PASS]</span> 3. 混合检索 Top3
+       <span class="q">查询：为什么 B+ 树插入会变慢</span>
+         #1 B+ 树索引的结构        (向量#1 全文#1) score=0.03279
+         #2 页分裂为什么会拖慢写入  (向量#2 全文#-) score=0.01613
+<span class="ok">[PASS]</span> 4. 写入复习事实 + 聚合薄弱主题
+<span class="ok">[PASS]</span> 5. PowerContext 写入 -&gt; 召回 -&gt; 影响行为
+结果：6 步，失败 0，跳过 1</pre>
+  </div>
+</section>
+
+<section id="shots">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="idx">05 / 界面</div>
+      <h2>真实运行截图</h2>
+      <p>不是设计稿，是跑起来之后截的。</p>
+    </div>
+    <div class="shots">
+      <figure class="shot">
+        <img src="shots/01-search.png" alt="混合检索结果" />
+        <figcaption>混合检索：每条结果标注向量排名、全文排名、记忆加权与 RRF 得分</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="shots/02-search-sql.png" alt="实际执行的 SQL" />
+        <figcaption>展开就能看到真正执行的 seekdb SQL，向量 + 全文 + 标量条件一目了然</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="shots/03-coach.png" alt="复习教练" />
+        <figcaption>复习教练：完形填空卡片，队列长度与优先科目来自记忆</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="shots/05-coach-graded.png" alt="评分后薄弱主题" />
+        <figcaption>标「还不熟」后，薄弱主题立刻出现在右侧（seekdb 聚合）并写入记忆</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="shots/06-profile.png" alt="学习档案" />
+        <figcaption>学习档案：PowerContext 里的记忆条目与 prepare 的原始返回</figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="shots/07-library.png" alt="资料库" />
+        <figcaption>资料库：导入的资料按科目归类，显示切块数量与出处</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="effect">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="idx">06 / 使用效果</div>
+      <h2>真实使用数据</h2>
+      <p>赛题鼓励提交可核对的使用效果。下面这一栏在真实试用后填写，数据来源一并附上。</p>
+    </div>
+    <table>
+      <thead>
+        <tr><th>指标</th><th>数值</th><th>数据来源</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>站点访问次数</td><td class="num">—</td><td>Qoder Sites 后台「访问统计」截图</td></tr>
+        <tr><td>独立访客</td><td class="num">—</td><td>同上</td></tr>
+        <tr><td>试用人数</td><td class="num">—</td><td>问卷 / 使用日志</td></tr>
+        <tr><td>累计检索次数</td><td class="num">—</td><td>应用 <code>/api/stats</code></td></tr>
+        <tr><td>累计复习卡片数</td><td class="num">—</td><td>应用 <code>/api/stats</code></td></tr>
+      </tbody>
+    </table>
+    <div class="note" style="margin-top:20px">
+      提效对比示例（待实测填写）：整理一次「翻 3 篇笔记找一段话」的任务，
+      改前平均 <b>__ 分钟</b>，改后平均 <b>__ 分钟</b>，样本 __ 次。
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      知返 KnowReturn · Qoder × OceanBase 2026 大赛参赛作品<br />
+      基于 <a href="https://github.com/oceanbase/seekdb">seekdb</a> 与
+      <a href="https://github.com/oceanbase/powercontext">PowerContext</a>（均为 Apache-2.0）
+    </div>
+    <div>向量模型：BAAI/bge-small-zh-v1.5（MIT）</div>
+  </div>
+</footer>
+
+</body>
+</html>
