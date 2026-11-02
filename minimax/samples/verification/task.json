@@ -1,0 +1,40 @@
+{
+  "task_id": "T1-amount-filter",
+  "title": "为订单列表查询增加金额区间筛选",
+  "description": "order-service 的 OrderService.list_orders 目前只支持按状态过滤。业务方要求支持按金额区间（min_amount / max_amount）筛选订单：区间为闭区间，可与 status 叠加使用，非法区间必须抛出 InvalidAmountRangeError。改造不得改变既有调用方式的行为。",
+  "keywords": [
+    "min_amount",
+    "max_amount",
+    "金额区间",
+    "list_orders",
+    "InvalidAmountRangeError",
+    "闭区间",
+    "参数校验",
+    "向后兼容"
+  ],
+  "expected_specs": [
+    "SPEC-ORD-009",
+    "SPEC-ORD-010",
+    "SPEC-ORD-011",
+    "SPEC-ORD-004",
+    "SPEC-ERR-004"
+  ],
+  "expected_code": [
+    "OrderService.list_orders",
+    "InvalidAmountRangeError",
+    "to_decimal"
+  ],
+  "expected_tests": [
+    "test_filter_by_min_amount",
+    "test_filter_by_max_amount",
+    "test_amount_range_is_inclusive",
+    "test_invalid_range_raises",
+    "test_validation_happens_before_repository_access"
+  ],
+  "target_tests": [
+    "tests/test_order_amount_filter.py"
+  ],
+  "regression_tests": [
+    "tests/test_order_query_regression.py"
+  ]
+}

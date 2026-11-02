@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sddctx"
+version = "0.1.0"
+description = "规格驱动开发（SDD）工程上下文模块：seekdb 存储检索 + PowerContext 状态复用 + MiniMax 代码修改"
+requires-python = ">=3.11"
+dependencies = [
+    "pyseekdb>=1.4.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+sddctx = "sddctx.cli:main"
+
+[tool.setuptools]
+packages = ["sddctx"]
+
+[tool.pytest.ini_options]
+testpaths = ["business/tests"]

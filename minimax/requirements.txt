@@ -1,0 +1,8 @@
+# 上下文模块 + 业务工程依赖
+pyseekdb==1.4.0.post1
+pytest>=8.0
+
+# 任务状态保存 / 复用（PowerContext Server）
+# 安装：pip install "powercontext[cli,server]==1.2.0"
+# 或按比赛仓库文档从源码安装
+powercontext[cli,server]==1.2.0
