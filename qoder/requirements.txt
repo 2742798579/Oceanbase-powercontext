@@ -1,0 +1,12 @@
+# 运行环境：Python 3.11+（Windows / macOS / Linux 均可，Windows 已实测）
+#
+# 说明：seekdb 以嵌入式方式通过 pylibseekdb 加载，Windows 官方提供 win_amd64 wheel。
+# PowerContext 是独立进程，不在本文件里，安装方式见 README「三、启动」。
+pylibseekdb>=1.4.0
+pymysql>=1.1.0
+fastapi>=0.110
+uvicorn>=0.29
+# 语义向量（可选但强烈建议）：不装也能跑，会自动退回 hash 向量
+numpy>=1.26
+onnxruntime>=1.17
+tokenizers>=0.15

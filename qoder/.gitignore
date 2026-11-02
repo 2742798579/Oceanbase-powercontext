@@ -1,0 +1,17 @@
+# 运行产物
+.venv/
+__pycache__/
+*.pyc
+
+# 本地数据（不要提交）
+data/seekdb/
+data/models/
+data/server.log
+data/shoot.log
+data/powercontext_scope.txt
+
+# 凭据
+.env
+
+# 截图是提交材料，保留
+!site/shots/
